@@ -34,6 +34,7 @@ export const Route = createFileRoute("/clinician")({
 
 type Urgency = "low" | "medium" | "high";
 type Status = "open" | "resolved";
+type Routing = "clinician" | "pharmacist";
 
 interface CaseRow {
   id: string;
@@ -47,6 +48,7 @@ interface CaseRow {
   resolved_at: string | null;
   patient_name: string | null;
   patient_phone: string | null;
+  routed_to: Routing | null;
 }
 
 const URGENCY_RANK: Record<Urgency, number> = { high: 0, medium: 1, low: 2 };
