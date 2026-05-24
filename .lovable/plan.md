@@ -1,75 +1,41 @@
-## ClareCare — AI Triage Web App
+## Patient Chat UI Updates
 
-A single-page app with two routes: `/` (Patient Chat) and `/clinician` (Dashboard). Cases are stored in Lovable Cloud (Supabase) and the dashboard syncs in real time. Triage logic runs server-side via Claude.
+Five focused UI/UX changes to `src/routes/index.tsx` and the triage server function. No schema changes.
 
-### 1. Backend (Lovable Cloud)
+### 1. Opening message
+Replace the assistant's first message with:
+> "I help with 3 things: ① Medication questions ② Appointment prep ③ General health info. What brings you here today?"
 
-**Table: `escalated_cases`**
-- `id` (uuid, pk)
-- `patient_query` (text) — original message
-- `symptoms` (text[]) — extracted symptoms
-- `escalation_reason` (text)
-- `urgency` (text: 'low' | 'medium' | 'high')
-- `case_summary` (text) — AI-generated structured summary
-- `status` (text: 'open' | 'resolved', default 'open')
-- `created_at`, `resolved_at` (timestamptz)
+### 2. Persistent disclaimer bar
+Replace the current soft disclaimer card with a slim bar pinned to the top of the page (above `AppHeader` or directly under it, full-width, `sticky top-0 z-40`):
+> "Guidance only • Not a diagnosis • Emergency? Call 999"
 
-RLS: public read/insert/update for MVP (no login). Realtime enabled on the table.
+Style: tiny text, muted background (`bg-muted/60`), no close button, always visible.
 
-**Secret:** `ANTHROPIC_API_KEY` (requested via add_secret).
+### 3. Status badge under every AI response
+After each assistant bubble, render a small inline pill:
+- Safe → green: `✓ Handled by ClareCare`
+- Escalated → amber: `🔔 Flagging for clinician`
 
-### 2. Triage server function
+This replaces the current "Flagged for clinician follow-up" inline notice inside the bubble — moves it out, makes it a consistent status indicator on every AI message.
 
-`src/lib/triage.functions.ts` — `createServerFn` that:
-1. Receives `{ messages: [...] }` (full conversation).
-2. Calls Claude (`claude-sonnet-4`) with a system prompt instructing it to respond conversationally AND return a JSON tool call indicating `safe` or `escalate` with the structured fields (symptoms, reason, urgency, summary).
-3. If escalate → insert row into `escalated_cases` via `supabaseAdmin`.
-4. Returns `{ reply, escalated, urgency? }` to the client.
+### 4. Escalation reason in the reply
+Update the system prompt in `src/lib/triage.functions.ts` so when the model escalates, the `reply` field follows the pattern:
+> "I'm flagging this because you mentioned [trigger]. A clinician will review within 2 hours. [optional empathy / 999 advice if life-threatening]"
 
-Uses Claude tool-use to force structured output alongside the natural-language reply.
+The `[X]` is filled by the model from the actual symptom/keyword the patient mentioned. Keep the existing tool-use structure — only the prompt instruction for the `reply` field changes.
 
-### 3. Patient Chat (`/`)
+### 5. "Request human review" button
+Below every assistant message (both safe and escalated), render a ghost-style link-button:
+> "Prefer to speak to someone? Request review"
 
-- Centered mobile-friendly column, soft white/blue.
-- Message list with user/assistant bubbles, typing indicator.
-- Composer at the bottom.
-- When the assistant escalates, an inline notice appears: "A clinician will follow up shortly" with the urgency level.
-- Subtle empathetic tone; clearly NOT a medical diagnosis (footer disclaimer).
+Behavior: on click, insert an escalation row into `escalated_cases` (urgency `low`, reason `"Patient requested human review"`, summary built from recent conversation) and show a small confirmation: "Request sent — a clinician will follow up." Disable the button after click for that message.
 
-### 4. Clinician Dashboard (`/clinician`)
+This needs a new server function `requestHumanReview` in `src/lib/triage.functions.ts` that takes the recent conversation and inserts the row via `supabaseAdmin`.
 
-- Desktop-optimized grid of cards, sorted by urgency then recency.
-- Filter tabs: Open / Resolved.
-- Each card: truncated query, color-coded urgency badge (green/amber/red), AI summary, timestamp (relative), "Mark Resolved" button.
-- Live updates via Supabase realtime channel subscription on `escalated_cases`.
-- Empty state when no open cases.
+### Files touched
+- `src/routes/index.tsx` — opening message, disclaimer bar, status badge, review button, confirmation state
+- `src/lib/triage.functions.ts` — system prompt tweak + new `requestHumanReview` server fn
 
-### 5. Design system (`src/styles.css`)
-
-- Background: near-white; primary: calm clinical blue; accent: soft green; urgency tokens: green/amber/red.
-- Typography: Inter for body, a slightly warmer display font for headings.
-- Generous spacing, soft shadows, rounded-xl cards.
-- Add semantic tokens: `--medical-blue`, `--medical-green`, `--urgency-low/med/high`.
-
-### 6. Routes & nav
-
-- `src/routes/index.tsx` → Patient Chat
-- `src/routes/clinician.tsx` → Dashboard
-- Minimal top bar with two links to switch views (subtle, not prominent for patients).
-
-### Technical notes
-
-- Anthropic call goes through a server function (never client-side) using `process.env.ANTHROPIC_API_KEY`.
-- Realtime: subscribe in `useEffect` on the dashboard, invalidate query on INSERT/UPDATE.
-- TanStack Query for cases list; `useSuspenseQuery` + loader pattern.
-- No auth (MVP); RLS policies allow anon access — flagged as intentional in security memory.
-
-### Deliverables checklist
-
-1. Enable Lovable Cloud, create table + RLS + realtime.
-2. Request `ANTHROPIC_API_KEY` secret.
-3. Design tokens in `styles.css`.
-4. `triage.functions.ts` with Claude integration.
-5. Patient chat route + components.
-6. Clinician dashboard route + realtime hook.
-7. Shared header with view toggle.
+### Out of scope
+No DB migration (existing schema covers it). No clinician dashboard changes. No auth.

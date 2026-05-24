@@ -21,7 +21,7 @@ For every patient message you must decide between two paths:
 
 2. ESCALATE — Anything urgent or beyond general advice. Mandatory escalation triggers include but are not limited to: chest pain, difficulty or shortness of breath, severe pain, sudden weakness/numbness, confusion or altered mental state, severe bleeding, suicidal thoughts or self-harm, pregnancy complications, head injury, high fever in infants, signs of stroke or heart attack, severe allergic reactions, persistent or worsening symptoms, anything the patient describes as severe/getting worse/scary, or anything outside general advice.
 
-When you ESCALATE: respond with empathy in 2-4 sentences. Acknowledge what they shared, do NOT minimize, tell them a clinician will follow up shortly, and — if symptoms could be life-threatening — gently advise them to call emergency services right now.
+When you ESCALATE: the "reply" field MUST start with: "I'm flagging this because you mentioned [X]." — replace [X] with the specific symptom or concern the patient actually wrote (e.g. "chest pain", "blood in your stool", "thoughts of harming yourself"). Then add: "A clinician will review within 2 hours." Finally, add one short empathetic sentence. If symptoms could be life-threatening, add: "If this feels like an emergency, please call 999 right now." Keep the whole reply to 2-4 sentences. Do NOT minimize.
 
 You MUST always call the "triage" tool exactly once with your structured decision. The "reply" field contains exactly what the patient will see.`;
 
@@ -158,3 +158,38 @@ export const triageMessage = createServerFn({ method: "POST" })
       caseId,
     };
   });
+
+const ReviewInputSchema = z.object({
+  messages: z.array(MessageSchema).min(1).max(40),
+});
+
+export const requestHumanReview = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => ReviewInputSchema.parse(input))
+  .handler(async ({ data }) => {
+    const lastUser = [...data.messages].reverse().find((m) => m.role === "user");
+    const patientQuery = lastUser?.content ?? "(no message)";
+    const transcript = data.messages
+      .slice(-6)
+      .map((m) => `${m.role === "user" ? "Patient" : "ClareCare"}: ${m.content}`)
+      .join("\n");
+
+    const { data: inserted, error } = await supabaseAdmin
+      .from("escalated_cases")
+      .insert({
+        patient_query: patientQuery,
+        symptoms: [],
+        escalation_reason: "Patient requested human review",
+        urgency: "low",
+        case_summary: `Patient explicitly requested to speak with a clinician.\n\nRecent conversation:\n${transcript}`,
+        status: "open",
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error("Failed to insert review request:", error);
+      throw new Error("Could not submit review request");
+    }
+    return { caseId: inserted.id };
+  });
+
