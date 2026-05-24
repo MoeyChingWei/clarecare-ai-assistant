@@ -354,6 +354,22 @@ function CaseCard({
   );
 }
 
+function RoutedBadge({ routing }: { routing: Routing }) {
+  const isClinician = routing === "clinician";
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+        isClinician
+          ? "bg-medical-blue-soft text-medical-blue"
+          : "bg-medical-green-soft text-medical-green"
+      }`}
+    >
+      {isClinician ? "🩺" : "💊"} Routed to{" "}
+      {isClinician ? "Clinician" : "Pharmacist"}
+    </span>
+  );
+}
+
 function UrgencyBadge({ urgency }: { urgency: Urgency }) {
   const map = {
     high: {
