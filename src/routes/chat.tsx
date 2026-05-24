@@ -100,8 +100,32 @@ function PatientChat() {
   const [reviewState, setReviewState] = useState<
     "idle" | "pending" | "sent" | "resolved"
   >("idle");
+  const [showInputTip, setShowInputTip] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!patient || !lang) return;
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("clarecare_tour_chat")) return;
+    setShowInputTip(true);
+    const t = setTimeout(() => {
+      setShowInputTip(false);
+      try {
+        sessionStorage.setItem("clarecare_tour_chat", "1");
+      } catch {}
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [patient, lang]);
+
+  const dismissInputTip = () => {
+    if (!showInputTip) return;
+    setShowInputTip(false);
+    try {
+      sessionStorage.setItem("clarecare_tour_chat", "1");
+    } catch {}
+  };
+
 
   useEffect(() => {
     const el = textareaRef.current;
