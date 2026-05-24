@@ -243,6 +243,7 @@ function IntakeOverlay({
 }: {
   onSubmit: (info: PatientInfo) => void;
 }) {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [err, setErr] = useState<string | null>(null);
