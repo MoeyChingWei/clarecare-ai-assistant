@@ -66,7 +66,6 @@ type TestCase = {
 function AdminPage() {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-medical-blue-soft/40 via-background to-background">
-      <AppHeader />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
         <div className="mb-6">
           <h1 className="font-display text-2xl font-semibold tracking-tight">
