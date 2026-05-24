@@ -50,13 +50,21 @@ function LandingPage() {
 
 
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-medical-blue-soft/50 via-background to-background">
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-medical-blue-soft/50 via-background to-background">
       {/* Top disclaimer */}
       <div className="w-full border-b border-border/60 bg-muted/70">
         <p className="mx-auto max-w-3xl px-4 py-1.5 text-center text-[11px] font-medium tracking-wide text-muted-foreground">
           Guidance only • Not a diagnosis • Emergency? Call 999
         </p>
       </div>
+
+      {/* Doctor Access — subtle top-right */}
+      <button
+        onClick={() => navigate({ to: "/doctor-login" })}
+        className="absolute right-3 top-8 z-20 rounded-full border border-medical-blue/40 bg-background/70 px-3 py-1 text-xs font-medium text-medical-blue backdrop-blur transition-colors hover:bg-medical-blue/10 sm:right-4 sm:top-9"
+      >
+        Doctor Access
+      </button>
 
       <div className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
         {/* Hero */}
