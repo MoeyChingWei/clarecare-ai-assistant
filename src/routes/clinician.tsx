@@ -105,7 +105,7 @@ function ClinicianDashboard() {
 
   // Mark online while session active; offline on unmount
   useEffect(() => {
-    if (!doctor) return;
+    if (!doctor || !doctor.id) return;
     supabase
       .from("doctor_accounts")
       .update({ is_online: true })
@@ -113,7 +113,6 @@ function ClinicianDashboard() {
       .then(() => {});
 
     const handleUnload = () => {
-      // Best-effort offline marker
       navigator.sendBeacon?.("/");
       void supabase
         .from("doctor_accounts")
@@ -127,14 +126,14 @@ function ClinicianDashboard() {
   }, [doctor]);
 
   const signOut = async () => {
-    if (doctor) {
+    if (doctor && doctor.id) {
       await supabase
         .from("doctor_accounts")
         .update({ is_online: false })
         .eq("id", doctor.id);
     }
-    localStorage.removeItem(DOCTOR_SESSION_KEY);
-    navigate({ to: "/doctor-login" });
+    clearSession();
+    navigate({ to: "/login" });
   };
 
   const { data: assignments = [], isLoading } = useQuery({
