@@ -216,6 +216,47 @@ export function DoctorPickerModal({
                 </section>
               )}
 
+              {offlineDoctors.length > 0 && (
+                <section>
+                  <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Other doctors
+                  </h3>
+                  <div className="space-y-2">
+                    {offlineDoctors.map((d) => (
+                      <article
+                        key={d.id}
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background p-3 shadow-sm"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-foreground">
+                            Dr. {d.full_name}
+                          </p>
+                          {d.speciality && (
+                            <p className="truncate text-xs text-muted-foreground">
+                              {d.speciality}
+                            </p>
+                          )}
+                          <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                            <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />
+                            Currently offline — may take longer to respond
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => assignTo(d)}
+                          disabled={busyId === d.id || autoBusy}
+                          className="shrink-0 rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                        >
+                          {busyId === d.id ? "Connecting…" : "Select"}
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+
+
               <section>
                 <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Assign to any available doctor
