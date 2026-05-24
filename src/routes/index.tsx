@@ -63,7 +63,7 @@ function LandingPage() {
 
         {/* Info cards */}
         <section className="flex-1 px-4 pb-4">
-          <div className="mx-auto grid h-full max-w-5xl grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+          <div className="mx-auto grid h-full max-w-5xl auto-rows-auto grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4 lg:h-auto lg:grid-cols-3">
             <InfoCard
               icon={<Pill className="h-5 w-5" />}
               emoji="💊"
