@@ -14,7 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      escalated_cases: {
+        Row: {
+          case_summary: string
+          created_at: string
+          escalation_reason: string
+          id: string
+          patient_query: string
+          resolved_at: string | null
+          status: string
+          symptoms: string[]
+          urgency: string
+        }
+        Insert: {
+          case_summary: string
+          created_at?: string
+          escalation_reason: string
+          id?: string
+          patient_query: string
+          resolved_at?: string | null
+          status?: string
+          symptoms?: string[]
+          urgency: string
+        }
+        Update: {
+          case_summary?: string
+          created_at?: string
+          escalation_reason?: string
+          id?: string
+          patient_query?: string
+          resolved_at?: string | null
+          status?: string
+          symptoms?: string[]
+          urgency?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
