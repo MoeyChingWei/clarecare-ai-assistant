@@ -166,21 +166,13 @@ function PatientChat() {
     });
   }, [messages, pending]);
 
-  const send = async () => {
-    const text = input.trim();
-    if (!text || pending || !patient) return;
-    setError(null);
-    const next: ChatMessage[] = [
-      ...messages,
-      { id: makeId(), role: "user", content: text },
-    ];
-    setMessages(next);
-    setInput("");
+  const callTriage = async (history: ChatMessage[]) => {
+    if (!patient) return;
     setPending(true);
     try {
       const result = await triage({
         data: {
-          messages: next.map((m) => ({ role: m.role, content: m.content })),
+          messages: history.map((m) => ({ role: m.role, content: m.content })),
           patientName: patient.name,
           patientPhone: patient.phone,
         },
@@ -203,6 +195,162 @@ function PatientChat() {
       setPending(false);
     }
   };
+
+  const escalateFlow = async (
+    history: ChatMessage[],
+    assistantText: string,
+    urgency: Urgency,
+  ) => {
+    if (!patient) return;
+    setPending(true);
+    try {
+      await review({
+        data: {
+          messages: history.map((m) => ({ role: m.role, content: m.content })),
+          patientName: patient.name,
+          patientPhone: patient.phone,
+        },
+      });
+      setMessages((m) => [
+        ...m,
+        {
+          id: makeId(),
+          role: "assistant",
+          content: assistantText,
+          escalated: true,
+          urgency,
+          reviewState: "idle",
+        },
+      ]);
+    } catch (e) {
+      console.error(e);
+      setError("Couldn't submit review request. Please try again.");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || pending || !patient) return;
+    setError(null);
+    const userMsg: ChatMessage = { id: makeId(), role: "user", content: text };
+    const next: ChatMessage[] = [...messages, userMsg];
+    setMessages(next);
+    setInput("");
+
+    // Continuing an active flow with free-text input
+    if (lang && activeFlow?.awaitingFreeText) {
+      const flow = FLOWS[lang][activeFlow.key];
+      const nextStep = activeFlow.step + 1;
+      if (nextStep < flow.steps.length) {
+        setActiveFlow({ key: activeFlow.key, step: nextStep });
+        setMessages((m) => [
+          ...m,
+          {
+            id: makeId(),
+            role: "assistant",
+            content: flow.steps[nextStep].question,
+            reviewState: "idle",
+          },
+        ]);
+        return;
+      }
+      setActiveFlow(null);
+      await callTriage(next);
+      return;
+    }
+
+    // User typed freely while flow buttons were visible → cancel flow
+    if (activeFlow) setActiveFlow(null);
+
+    await callTriage(next);
+  };
+
+  const startFlow = (key: FlowKey) => {
+    if (!lang || pending) return;
+    const flow = FLOWS[lang][key];
+    setMessages((m) => [
+      ...m,
+      { id: makeId(), role: "user", content: flow.label },
+      {
+        id: makeId(),
+        role: "assistant",
+        content: flow.steps[0].question,
+        reviewState: "idle",
+      },
+    ]);
+    setActiveFlow({ key, step: 0 });
+  };
+
+  const answerFlow = async (option: {
+    label: string;
+    redFlag?: boolean;
+    freeText?: boolean;
+    requestReview?: boolean;
+    requestPharmacist?: boolean;
+  }) => {
+    if (!lang || !activeFlow || pending) return;
+    const flow = FLOWS[lang][activeFlow.key];
+    const userMsg: ChatMessage = { id: makeId(), role: "user", content: option.label };
+    const newHistory = [...messages, userMsg];
+    setMessages(newHistory);
+
+    if (option.redFlag) {
+      setActiveFlow(null);
+      await escalateFlow(newHistory, RED_FLAG_MESSAGE[lang as FlowLang], "high");
+      return;
+    }
+    if (option.requestReview) {
+      setActiveFlow(null);
+      await escalateFlow(
+        newHistory,
+        REVIEW_REQUESTED_MESSAGE[lang as FlowLang],
+        "medium",
+      );
+      return;
+    }
+    if (option.requestPharmacist) {
+      setActiveFlow(null);
+      await escalateFlow(
+        newHistory,
+        PHARMACIST_REQUESTED_MESSAGE[lang as FlowLang],
+        "low",
+      );
+      return;
+    }
+    if (option.freeText) {
+      setActiveFlow({ ...activeFlow, awaitingFreeText: true });
+      setMessages((m) => [
+        ...m,
+        {
+          id: makeId(),
+          role: "assistant",
+          content: FREETEXT_PROMPT[lang as FlowLang],
+          reviewState: "idle",
+        },
+      ]);
+      return;
+    }
+
+    const nextStep = activeFlow.step + 1;
+    if (nextStep < flow.steps.length) {
+      setActiveFlow({ key: activeFlow.key, step: nextStep });
+      setMessages((m) => [
+        ...m,
+        {
+          id: makeId(),
+          role: "assistant",
+          content: flow.steps[nextStep].question,
+          reviewState: "idle",
+        },
+      ]);
+    } else {
+      setActiveFlow(null);
+      await callTriage(newHistory);
+    }
+  };
+
 
   const handleReviewRequest = async () => {
     if (!patient) return;
