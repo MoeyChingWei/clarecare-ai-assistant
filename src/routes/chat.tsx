@@ -212,6 +212,7 @@ function PatientChat() {
           patientPhone: patient.phone,
         },
       });
+      if (result.caseId) setCaseId(result.caseId);
       setMessages((m) => [
         ...m,
         {
