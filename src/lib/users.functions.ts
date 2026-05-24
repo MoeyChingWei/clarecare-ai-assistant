@@ -84,7 +84,7 @@ export const updateUser = createServerFn({ method: "POST" })
     const caller = requireRole(data.token, ["superadmin", "admin"]);
     const { data: target } = await supabaseAdmin
       .from("user_accounts")
-      .select("role")
+      .select("role, username")
       .eq("id", data.id)
       .maybeSingle();
     if (!target) throw new Error("User not found");
@@ -108,6 +108,21 @@ export const updateUser = createServerFn({ method: "POST" })
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    if (data.role === "doctor" && data.status === "active") {
+      await syncDoctorAccount({
+        username: data.username,
+        fullName: data.fullName,
+        previousUsername: target.username,
+      });
+    } else if (target.role === "doctor") {
+      // Role changed away from doctor or user deactivated → mark offline
+      await supabaseAdmin
+        .from("doctor_accounts")
+        .update({ is_online: false })
+        .eq("username", target.username);
+    }
+
     await logAudit({
       actorUserId: caller.userId,
       actorRole: caller.role,
@@ -117,6 +132,7 @@ export const updateUser = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
 
 export const deactivateUser = createServerFn({ method: "POST" })
   .inputValidator((d) =>
