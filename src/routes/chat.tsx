@@ -240,13 +240,14 @@ function PatientChat() {
     if (!patient) return;
     setPending(true);
     try {
-      await review({
+      const result = await review({
         data: {
           messages: history.map((m) => ({ role: m.role, content: m.content })),
           patientName: patient.name,
           patientPhone: patient.phone,
         },
       });
+      if (result?.caseId) setCaseId(result.caseId);
       setMessages((m) => [
         ...m,
         {
