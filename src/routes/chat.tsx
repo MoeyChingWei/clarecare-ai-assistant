@@ -141,6 +141,9 @@ function PatientChat() {
     step: number;
     awaitingFreeText?: boolean;
   } | null>(null);
+  const [caseId, setCaseId] = useState<string | null>(null);
+  const [assignment, setAssignment] = useState<Assignment | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
