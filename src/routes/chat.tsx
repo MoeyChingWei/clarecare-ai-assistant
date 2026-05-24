@@ -389,24 +389,46 @@ function PatientChat() {
   };
 
 
-  const handleReviewRequest = async () => {
-    if (!patient) return;
-    setReviewState("pending");
+  const ensureCaseId = async (): Promise<string | null> => {
+    if (caseId) return caseId;
+    if (!patient) return null;
     try {
-      await review({
+      const result = await review({
         data: {
           messages: messages.map((m) => ({ role: m.role, content: m.content })),
           patientName: patient.name,
           patientPhone: patient.phone,
         },
       });
-      setReviewState("sent");
+      const newId = result?.caseId ?? null;
+      if (newId) setCaseId(newId);
+      return newId;
     } catch (e) {
       console.error(e);
-      setReviewState("idle");
-      setError("Couldn't submit review request. Please try again.");
+      return null;
     }
   };
+
+  const handleReviewRequest = () => {
+    if (!patient) return;
+    setPickerOpen(true);
+  };
+
+  const handleAssigned = (a: Assignment) => {
+    setAssignment(a);
+    setReviewState("sent");
+    setMessages((m) => [
+      ...m,
+      {
+        id: makeId(),
+        role: "assistant",
+        content: `You've been connected to Dr. ${a.doctorName}. They can see your conversation and will respond shortly.`,
+        escalated: true,
+        reviewState: "idle",
+      },
+    ]);
+  };
+
 
   const hasUserMessage = messages.some((m) => m.role === "user" && m.content !== "English" && m.content !== "中文" && m.content !== "Bahasa Melayu");
   const hasAssistantReply = (() => {
