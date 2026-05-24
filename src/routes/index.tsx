@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Send, ShieldCheck, Sparkles } from "lucide-react";
+import { Send, Sparkles } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
-import { triageMessage } from "@/lib/triage.functions";
+import { triageMessage, requestHumanReview } from "@/lib/triage.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,26 +28,26 @@ export const Route = createFileRoute("/")({
 type Urgency = "low" | "medium" | "high";
 
 type ChatMessage = {
+  id: string;
   role: "user" | "assistant";
   content: string;
   escalated?: boolean;
   urgency?: Urgency;
+  reviewState?: "idle" | "pending" | "sent";
 };
 
-const URGENCY_LABEL: Record<Urgency, string> = {
-  low: "Low urgency",
-  medium: "Medium urgency",
-  high: "High urgency",
-};
+const INTRO =
+  "I help with 3 things: ① Medication questions ② Appointment prep ③ General health info. What brings you here today?";
+
+function makeId() {
+  return Math.random().toString(36).slice(2, 10);
+}
 
 function PatientChat() {
   const triage = useServerFn(triageMessage);
+  const review = useServerFn(requestHumanReview);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content:
-        "Hi, I'm ClareCare. Tell me what's going on or ask a general health question — I'll help where I can and flag your case to a clinician if it needs real attention.",
-    },
+    { id: "intro", role: "assistant", content: INTRO, escalated: false, reviewState: "idle" },
   ]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
@@ -65,7 +65,10 @@ function PatientChat() {
     const text = input.trim();
     if (!text || pending) return;
     setError(null);
-    const next: ChatMessage[] = [...messages, { role: "user", content: text }];
+    const next: ChatMessage[] = [
+      ...messages,
+      { id: makeId(), role: "user", content: text },
+    ];
     setMessages(next);
     setInput("");
     setPending(true);
@@ -78,10 +81,12 @@ function PatientChat() {
       setMessages((m) => [
         ...m,
         {
+          id: makeId(),
           role: "assistant",
           content: result.reply,
           escalated: result.escalated,
           urgency: result.urgency as Urgency,
+          reviewState: "idle",
         },
       ]);
     } catch (e) {
@@ -92,26 +97,51 @@ function PatientChat() {
     }
   };
 
+  const handleReviewRequest = async (messageId: string) => {
+    setMessages((m) =>
+      m.map((msg) => (msg.id === messageId ? { ...msg, reviewState: "pending" } : msg)),
+    );
+    try {
+      await review({
+        data: {
+          messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        },
+      });
+      setMessages((m) =>
+        m.map((msg) => (msg.id === messageId ? { ...msg, reviewState: "sent" } : msg)),
+      );
+    } catch (e) {
+      console.error(e);
+      setMessages((m) =>
+        m.map((msg) => (msg.id === messageId ? { ...msg, reviewState: "idle" } : msg)),
+      );
+      setError("Couldn't submit review request. Please try again.");
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-medical-blue-soft/40 via-background to-background">
+      {/* Persistent disclaimer bar */}
+      <div className="sticky top-0 z-40 w-full border-b border-border/60 bg-muted/70 backdrop-blur supports-[backdrop-filter]:bg-muted/60">
+        <p className="mx-auto max-w-3xl px-4 py-1.5 text-center text-[11px] font-medium tracking-wide text-muted-foreground">
+          Guidance only • Not a diagnosis • Emergency? Call 999
+        </p>
+      </div>
+
       <AppHeader />
 
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-4 pt-6">
-        <div className="mb-4 flex items-center gap-2 rounded-2xl border border-border/70 bg-card/80 px-4 py-3 shadow-sm">
-          <ShieldCheck className="h-4 w-4 shrink-0 text-medical-green" />
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            ClareCare offers general guidance, not a diagnosis. If you think
-            you're having a medical emergency, call your local emergency number.
-          </p>
-        </div>
-
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-4 pt-4">
         <div
           ref={scrollRef}
-          className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-border/70 bg-card p-4 shadow-sm"
-          style={{ maxHeight: "calc(100vh - 240px)" }}
+          className="flex-1 space-y-4 overflow-y-auto rounded-2xl border border-border/70 bg-card p-4 shadow-sm"
+          style={{ maxHeight: "calc(100vh - 220px)" }}
         >
-          {messages.map((m, i) => (
-            <Bubble key={i} message={m} />
+          {messages.map((m) => (
+            <MessageRow
+              key={m.id}
+              message={m}
+              onRequestReview={() => handleReviewRequest(m.id)}
+            />
           ))}
           {pending && (
             <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
@@ -119,9 +149,7 @@ function PatientChat() {
               ClareCare is thinking…
             </div>
           )}
-          {error && (
-            <p className="px-1 text-xs text-destructive">{error}</p>
-          )}
+          {error && <p className="px-1 text-xs text-destructive">{error}</p>}
         </div>
 
         <form
@@ -159,30 +187,62 @@ function PatientChat() {
   );
 }
 
-function Bubble({ message }: { message: ChatMessage }) {
+function MessageRow({
+  message,
+  onRequestReview,
+}: {
+  message: ChatMessage;
+  onRequestReview: () => void;
+}) {
   const isUser = message.role === "user";
-  return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
-          isUser
-            ? "rounded-br-md bg-medical-blue text-primary-foreground"
-            : "rounded-bl-md border border-border/70 bg-background text-foreground"
-        }`}
-      >
-        <p className="whitespace-pre-wrap">{message.content}</p>
-        {message.escalated && (
-          <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-medical-green/30 bg-medical-green-soft px-2 py-1 text-xs text-foreground">
-            <AlertTriangle className="h-3 w-3 text-medical-green" />
-            <span>
-              Flagged for clinician follow-up
-              {message.urgency
-                ? ` · ${URGENCY_LABEL[message.urgency]}`
-                : ""}
-            </span>
-          </div>
-        )}
+
+  if (isUser) {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[85%] rounded-2xl rounded-br-md bg-medical-blue px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
+          <p className="whitespace-pre-wrap">{message.content}</p>
+        </div>
       </div>
+    );
+  }
+
+  const escalated = !!message.escalated;
+  const reviewState = message.reviewState ?? "idle";
+
+  return (
+    <div className="flex flex-col items-start gap-1.5">
+      <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-border/70 bg-background px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-sm">
+        <p className="whitespace-pre-wrap">{message.content}</p>
+      </div>
+
+      {/* Status badge */}
+      <span
+        className={
+          escalated
+            ? "inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800"
+            : "inline-flex items-center gap-1 rounded-full border border-medical-green/30 bg-medical-green-soft px-2 py-0.5 text-[11px] font-medium text-foreground"
+        }
+      >
+        {escalated ? "🔔 Flagging for clinician" : "✓ Handled by ClareCare"}
+      </span>
+
+      {/* Request human review */}
+      {reviewState === "sent" ? (
+        <span className="text-[11px] italic text-muted-foreground">
+          Request sent — a clinician will follow up.
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={onRequestReview}
+          disabled={reviewState === "pending"}
+          className="text-[11px] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+        >
+          {reviewState === "pending"
+            ? "Sending request…"
+            : "Prefer to speak to someone? Request review"}
+        </button>
+      )}
     </div>
   );
 }
