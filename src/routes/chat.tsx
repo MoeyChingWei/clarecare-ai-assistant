@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Send, Sparkles, HelpCircle, ChevronDown, Stethoscope } from "lucide-react";
+import { Send, Sparkles, HelpCircle, ChevronDown, Stethoscope, X } from "lucide-react";
 import { triageMessage, requestHumanReview } from "@/lib/triage.functions";
 
 export const Route = createFileRoute("/chat")({
