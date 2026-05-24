@@ -100,8 +100,32 @@ function PatientChat() {
   const [reviewState, setReviewState] = useState<
     "idle" | "pending" | "sent" | "resolved"
   >("idle");
+  const [showInputTip, setShowInputTip] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!patient || !lang) return;
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("clarecare_tour_chat")) return;
+    setShowInputTip(true);
+    const t = setTimeout(() => {
+      setShowInputTip(false);
+      try {
+        sessionStorage.setItem("clarecare_tour_chat", "1");
+      } catch {}
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [patient, lang]);
+
+  const dismissInputTip = () => {
+    if (!showInputTip) return;
+    setShowInputTip(false);
+    try {
+      sessionStorage.setItem("clarecare_tour_chat", "1");
+    } catch {}
+  };
+
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -269,38 +293,60 @@ function PatientChat() {
           )}
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            send();
-          }}
-          className="mt-3 flex items-end gap-2 rounded-2xl border border-border/70 bg-card p-2 shadow-sm focus-within:ring-2 focus-within:ring-ring/50"
-        >
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                send();
-              }
+        <div className="relative mt-3">
+          {showInputTip && (
+            <div
+              role="dialog"
+              aria-label="Input tip"
+              className="pointer-events-none absolute -top-2 left-1/2 z-30 w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-full animate-fade-in rounded-2xl bg-medical-blue px-4 py-3 text-center text-primary-foreground shadow-2xl shadow-black/20"
+            >
+              <p className="text-sm leading-relaxed">
+                Type your question or describe your symptoms here, then press send.
+              </p>
+              <span
+                className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 bg-medical-blue motion-safe:animate-bounce"
+                aria-hidden="true"
+              />
+            </div>
+          )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              send();
             }}
-            placeholder={lang ? INPUT_PLACEHOLDER[lang] : "Please choose a language above…"}
-            rows={2}
-            style={{ minHeight: 56, maxHeight: 160 }}
-            className="min-w-0 flex-1 resize-none overflow-y-auto whitespace-pre-wrap break-words bg-transparent px-3 py-3 text-sm leading-relaxed outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
-            disabled={pending || !patient || !lang}
-          />
-          <button
-            type="submit"
-            disabled={pending || !input.trim() || !patient || !lang}
-            className="flex h-10 w-10 shrink-0 items-center justify-center self-end rounded-xl bg-medical-blue text-primary-foreground transition-opacity disabled:opacity-40"
-            aria-label="Send"
+            className="flex items-end gap-2 rounded-2xl border border-border/70 bg-card p-2 shadow-sm focus-within:ring-2 focus-within:ring-ring/50"
           >
-            <Send className="h-4 w-4" />
-          </button>
-        </form>
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                dismissInputTip();
+              }}
+              onKeyDown={(e) => {
+                dismissInputTip();
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+              placeholder={lang ? INPUT_PLACEHOLDER[lang] : "Please choose a language above…"}
+              rows={2}
+              style={{ minHeight: 56, maxHeight: 160 }}
+              className="min-w-0 flex-1 resize-none overflow-y-auto whitespace-pre-wrap break-words bg-transparent px-3 py-3 text-sm leading-relaxed outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+              disabled={pending || !patient || !lang}
+            />
+            <button
+              type="submit"
+              disabled={pending || !input.trim() || !patient || !lang}
+              className="flex h-10 w-10 shrink-0 items-center justify-center self-end rounded-xl bg-medical-blue text-primary-foreground transition-opacity disabled:opacity-40"
+              aria-label="Send"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
+        </div>
+
 
         {lang && <GuidancePanel lang={lang} onPickTemplate={(t) => setInput(t)} />}
       </main>

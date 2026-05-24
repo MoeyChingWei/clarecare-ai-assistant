@@ -22,14 +22,32 @@ export const Route = createFileRoute("/")({
   component: LandingPage,
 });
 
+const TOUR_KEY = "clarecare_tour_landing_dismissed";
+
 function LandingPage() {
   const navigate = useNavigate();
   const [bounced, setBounced] = useState(true);
+  const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setBounced(false), 2200);
+    if (typeof window !== "undefined" && !localStorage.getItem(TOUR_KEY)) {
+      const tt = setTimeout(() => setShowTour(true), 600);
+      return () => {
+        clearTimeout(t);
+        clearTimeout(tt);
+      };
+    }
     return () => clearTimeout(t);
   }, []);
+
+  const dismissTour = () => {
+    setShowTour(false);
+    try {
+      localStorage.setItem(TOUR_KEY, "1");
+    } catch {}
+  };
+
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-medical-blue-soft/50 via-background to-background">
@@ -89,7 +107,7 @@ function LandingPage() {
       {/* Floating chat bubble */}
       <button
         onClick={() => navigate({ to: "/chat" })}
-        className={`fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-medical-blue text-primary-foreground shadow-xl shadow-medical-blue/30 transition-transform hover:scale-105 ${
+        className={`fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-medical-blue text-primary-foreground shadow-xl shadow-medical-blue/30 transition-transform hover:scale-105 ${
           bounced ? "animate-bounce" : ""
         }`}
         aria-label="Open chat"
@@ -100,9 +118,43 @@ function LandingPage() {
           <span className="relative inline-flex h-3 w-3 rounded-full bg-medical-green border-2 border-medical-blue" />
         </span>
       </button>
+
+      {/* First-time tour overlay */}
+      {showTour && (
+        <>
+          <div
+            onClick={dismissTour}
+            className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px] animate-fade-in"
+            aria-hidden="true"
+          />
+          <div
+            role="dialog"
+            aria-label="Welcome tip"
+            className="fixed bottom-24 right-4 z-50 w-[min(20rem,calc(100vw-2rem))] animate-fade-in rounded-2xl bg-medical-blue p-4 text-primary-foreground shadow-2xl shadow-black/30 sm:right-6 sm:bottom-24"
+          >
+            <p className="text-sm leading-relaxed">
+              <span className="font-semibold">Have a health question?</span>
+              <br />
+              Tap here to talk to ClareCare.
+            </p>
+            <button
+              onClick={dismissTour}
+              className="mt-3 inline-flex items-center rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-white/25"
+            >
+              Got it
+            </button>
+            {/* Arrow pointing down-right toward the bubble */}
+            <span
+              className="absolute -bottom-2 right-8 h-4 w-4 rotate-45 bg-medical-blue"
+              aria-hidden="true"
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
+
 
 function InfoCard({
   emoji,
