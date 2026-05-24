@@ -48,7 +48,6 @@ export type Database = {
           patient_phone: string | null
           patient_query: string
           resolved_at: string | null
-          routed_to: string | null
           status: string
           symptoms: string[]
           urgency: string
@@ -62,7 +61,6 @@ export type Database = {
           patient_phone?: string | null
           patient_query: string
           resolved_at?: string | null
-          routed_to?: string | null
           status?: string
           symptoms?: string[]
           urgency: string
@@ -76,7 +74,6 @@ export type Database = {
           patient_phone?: string | null
           patient_query?: string
           resolved_at?: string | null
-          routed_to?: string | null
           status?: string
           symptoms?: string[]
           urgency?: string

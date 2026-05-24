@@ -1,1 +1,0 @@
-ALTER TABLE public.escalated_cases ADD COLUMN IF NOT EXISTS routed_to text;

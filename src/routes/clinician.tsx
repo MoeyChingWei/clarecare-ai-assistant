@@ -34,7 +34,6 @@ export const Route = createFileRoute("/clinician")({
 
 type Urgency = "low" | "medium" | "high";
 type Status = "open" | "resolved";
-type Routing = "clinician" | "pharmacist";
 
 interface CaseRow {
   id: string;
@@ -48,7 +47,6 @@ interface CaseRow {
   resolved_at: string | null;
   patient_name: string | null;
   patient_phone: string | null;
-  routed_to: Routing | null;
 }
 
 const URGENCY_RANK: Record<Urgency, number> = { high: 0, medium: 1, low: 2 };
@@ -155,20 +153,6 @@ function ClinicianDashboard() {
     }
   };
 
-  const confirmRouting = async (id: string, routing: Routing) => {
-    qc.setQueryData<CaseRow[]>(["escalated_cases"], (prev) =>
-      prev?.map((c) => (c.id === id ? { ...c, routed_to: routing } : c)),
-    );
-    const { error } = await supabase
-      .from("escalated_cases")
-      .update({ routed_to: routing })
-      .eq("id", id);
-    if (error) {
-      console.error(error);
-      qc.invalidateQueries({ queryKey: ["escalated_cases"] });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
@@ -230,13 +214,7 @@ function ClinicianDashboard() {
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((c) => (
-              <CaseCard
-                key={c.id}
-                c={c}
-                onResolve={resolve}
-                onConfirmRouting={confirmRouting}
-              />
-
+              <CaseCard key={c.id} c={c} onResolve={resolve} />
             ))}
           </div>
         )}
@@ -248,13 +226,10 @@ function ClinicianDashboard() {
 function CaseCard({
   c,
   onResolve,
-  onConfirmRouting,
 }: {
   c: CaseRow;
   onResolve: (id: string) => void;
-  onConfirmRouting: (id: string, routing: Routing) => void;
 }) {
-  const [routing, setRouting] = useState<Routing>(c.routed_to ?? "clinician");
   return (
     <article className="flex flex-col rounded-2xl border border-border/70 bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
@@ -309,33 +284,6 @@ function CaseCard({
         )}
       </div>
 
-      <div className="mt-3">
-        {c.routed_to ? (
-          <RoutedBadge routing={c.routed_to} />
-        ) : (
-          <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/40 p-3 sm:flex-row sm:items-center">
-            <label className="text-xs font-medium text-muted-foreground">
-              Route to:
-            </label>
-            <select
-              value={routing}
-              onChange={(e) => setRouting(e.target.value as Routing)}
-              className="flex-1 rounded-lg border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-medical-blue/40"
-            >
-              <option value="clinician">🩺 Clinician</option>
-              <option value="pharmacist">💊 Pharmacist</option>
-            </select>
-            <button
-              onClick={() => onConfirmRouting(c.id, routing)}
-              className="rounded-lg bg-medical-blue px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              Confirm Routing
-            </button>
-          </div>
-        )}
-      </div>
-
-
       {c.status === "open" ? (
         <button
           onClick={() => onResolve(c.id)}
@@ -351,22 +299,6 @@ function CaseCard({
         </p>
       )}
     </article>
-  );
-}
-
-function RoutedBadge({ routing }: { routing: Routing }) {
-  const isClinician = routing === "clinician";
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-        isClinician
-          ? "bg-medical-blue-soft text-medical-blue"
-          : "bg-medical-green-soft text-medical-green"
-      }`}
-    >
-      {isClinician ? "🩺" : "💊"} Routed to{" "}
-      {isClinician ? "Clinician" : "Pharmacist"}
-    </span>
   );
 }
 

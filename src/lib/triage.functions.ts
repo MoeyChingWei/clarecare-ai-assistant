@@ -16,30 +16,6 @@ const InputSchema = z.object({
   patientPhone: PatientPhoneSchema,
 });
 
-const PHARMACIST_KEYWORDS = [
-  "medication",
-  "medicine",
-  "refill",
-  "prescription",
-  "dosage",
-  "dose",
-  "side effect",
-  "side-effect",
-  "drug interaction",
-  "interaction",
-  "pill",
-  "tablet",
-  "pharmacy",
-  "pharmacist",
-];
-
-function recommendRouting(text: string): "clinician" | "pharmacist" {
-  const lower = text.toLowerCase();
-  return PHARMACIST_KEYWORDS.some((k) => lower.includes(k))
-    ? "pharmacist"
-    : "clinician";
-}
-
 const SAFETY_RULES = `
 SAFETY RULES (ABSOLUTE):
 - You must NEVER diagnose.
@@ -165,9 +141,6 @@ export const triageMessage = createServerFn({ method: "POST" })
           status: "open",
           patient_name: patientName,
           patient_phone: patientPhone,
-          routed_to: recommendRouting(
-            `${patientQuery} ${matchedRule.keyword}`,
-          ),
         })
         .select("id")
         .single();
@@ -217,9 +190,6 @@ export const triageMessage = createServerFn({ method: "POST" })
           status: "open",
           patient_name: patientName,
           patient_phone: patientPhone,
-          routed_to: recommendRouting(
-            `${patientQuery} ${(result.symptoms_mentioned ?? []).join(" ")} ${result.escalation_reason ?? ""}`,
-          ),
         })
         .select("id")
         .single();
@@ -264,7 +234,6 @@ export const requestHumanReview = createServerFn({ method: "POST" })
         status: "open",
         patient_name: data.patientName ?? null,
         patient_phone: data.patientPhone ?? null,
-        routed_to: recommendRouting(patientQuery),
       })
       .select("id")
       .single();
