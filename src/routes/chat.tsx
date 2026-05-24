@@ -3,6 +3,18 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { Send, Sparkles, HelpCircle, ChevronDown, Stethoscope, X } from "lucide-react";
 import { triageMessage, requestHumanReview } from "@/lib/triage.functions";
+import {
+  FLOWS,
+  FLOW_ORDER,
+  RED_FLAG_MESSAGE,
+  REVIEW_REQUESTED_MESSAGE,
+  PHARMACIST_REQUESTED_MESSAGE,
+  FREETEXT_PROMPT,
+  FLOW_DONE_LABEL,
+  type FlowKey,
+  type Lang as FlowLang,
+} from "@/lib/chat-flows";
+
 
 export const Route = createFileRoute("/chat")({
   head: () => ({
@@ -102,8 +114,14 @@ function PatientChat() {
     "idle" | "pending" | "sent" | "resolved"
   >("idle");
   const [showInputTip, setShowInputTip] = useState(false);
+  const [activeFlow, setActiveFlow] = useState<{
+    key: FlowKey;
+    step: number;
+    awaitingFreeText?: boolean;
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
 
   useEffect(() => {
     if (!patient || !lang) return;
@@ -148,21 +166,13 @@ function PatientChat() {
     });
   }, [messages, pending]);
 
-  const send = async () => {
-    const text = input.trim();
-    if (!text || pending || !patient) return;
-    setError(null);
-    const next: ChatMessage[] = [
-      ...messages,
-      { id: makeId(), role: "user", content: text },
-    ];
-    setMessages(next);
-    setInput("");
+  const callTriage = async (history: ChatMessage[]) => {
+    if (!patient) return;
     setPending(true);
     try {
       const result = await triage({
         data: {
-          messages: next.map((m) => ({ role: m.role, content: m.content })),
+          messages: history.map((m) => ({ role: m.role, content: m.content })),
           patientName: patient.name,
           patientPhone: patient.phone,
         },
@@ -185,6 +195,162 @@ function PatientChat() {
       setPending(false);
     }
   };
+
+  const escalateFlow = async (
+    history: ChatMessage[],
+    assistantText: string,
+    urgency: Urgency,
+  ) => {
+    if (!patient) return;
+    setPending(true);
+    try {
+      await review({
+        data: {
+          messages: history.map((m) => ({ role: m.role, content: m.content })),
+          patientName: patient.name,
+          patientPhone: patient.phone,
+        },
+      });
+      setMessages((m) => [
+        ...m,
+        {
+          id: makeId(),
+          role: "assistant",
+          content: assistantText,
+          escalated: true,
+          urgency,
+          reviewState: "idle",
+        },
+      ]);
+    } catch (e) {
+      console.error(e);
+      setError("Couldn't submit review request. Please try again.");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || pending || !patient) return;
+    setError(null);
+    const userMsg: ChatMessage = { id: makeId(), role: "user", content: text };
+    const next: ChatMessage[] = [...messages, userMsg];
+    setMessages(next);
+    setInput("");
+
+    // Continuing an active flow with free-text input
+    if (lang && activeFlow?.awaitingFreeText) {
+      const flow = FLOWS[lang][activeFlow.key];
+      const nextStep = activeFlow.step + 1;
+      if (nextStep < flow.steps.length) {
+        setActiveFlow({ key: activeFlow.key, step: nextStep });
+        setMessages((m) => [
+          ...m,
+          {
+            id: makeId(),
+            role: "assistant",
+            content: flow.steps[nextStep].question,
+            reviewState: "idle",
+          },
+        ]);
+        return;
+      }
+      setActiveFlow(null);
+      await callTriage(next);
+      return;
+    }
+
+    // User typed freely while flow buttons were visible → cancel flow
+    if (activeFlow) setActiveFlow(null);
+
+    await callTriage(next);
+  };
+
+  const startFlow = (key: FlowKey) => {
+    if (!lang || pending) return;
+    const flow = FLOWS[lang][key];
+    setMessages((m) => [
+      ...m,
+      { id: makeId(), role: "user", content: flow.label },
+      {
+        id: makeId(),
+        role: "assistant",
+        content: flow.steps[0].question,
+        reviewState: "idle",
+      },
+    ]);
+    setActiveFlow({ key, step: 0 });
+  };
+
+  const answerFlow = async (option: {
+    label: string;
+    redFlag?: boolean;
+    freeText?: boolean;
+    requestReview?: boolean;
+    requestPharmacist?: boolean;
+  }) => {
+    if (!lang || !activeFlow || pending) return;
+    const flow = FLOWS[lang][activeFlow.key];
+    const userMsg: ChatMessage = { id: makeId(), role: "user", content: option.label };
+    const newHistory = [...messages, userMsg];
+    setMessages(newHistory);
+
+    if (option.redFlag) {
+      setActiveFlow(null);
+      await escalateFlow(newHistory, RED_FLAG_MESSAGE[lang as FlowLang], "high");
+      return;
+    }
+    if (option.requestReview) {
+      setActiveFlow(null);
+      await escalateFlow(
+        newHistory,
+        REVIEW_REQUESTED_MESSAGE[lang as FlowLang],
+        "medium",
+      );
+      return;
+    }
+    if (option.requestPharmacist) {
+      setActiveFlow(null);
+      await escalateFlow(
+        newHistory,
+        PHARMACIST_REQUESTED_MESSAGE[lang as FlowLang],
+        "low",
+      );
+      return;
+    }
+    if (option.freeText) {
+      setActiveFlow({ ...activeFlow, awaitingFreeText: true });
+      setMessages((m) => [
+        ...m,
+        {
+          id: makeId(),
+          role: "assistant",
+          content: FREETEXT_PROMPT[lang as FlowLang],
+          reviewState: "idle",
+        },
+      ]);
+      return;
+    }
+
+    const nextStep = activeFlow.step + 1;
+    if (nextStep < flow.steps.length) {
+      setActiveFlow({ key: activeFlow.key, step: nextStep });
+      setMessages((m) => [
+        ...m,
+        {
+          id: makeId(),
+          role: "assistant",
+          content: flow.steps[nextStep].question,
+          reviewState: "idle",
+        },
+      ]);
+    } else {
+      setActiveFlow(null);
+      await callTriage(newHistory);
+    }
+  };
+
 
   const handleReviewRequest = async () => {
     if (!patient) return;
@@ -284,6 +450,13 @@ function PatientChat() {
             </div>
           )}
 
+          {activeFlow && lang && !activeFlow.awaitingFreeText && !pending && (
+            <FlowAnswers
+              options={FLOWS[lang][activeFlow.key].steps[activeFlow.step].options}
+              onPick={answerFlow}
+            />
+          )}
+
           {showReviewCard && lang && (
             <ReviewCard
               lang={lang}
@@ -293,6 +466,7 @@ function PatientChat() {
             />
           )}
         </div>
+
 
         <div className="relative mt-3">
           {showInputTip && (
@@ -349,7 +523,7 @@ function PatientChat() {
         </div>
 
 
-        {lang && <GuidancePanel lang={lang} onPickTemplate={(t) => setInput(t)} />}
+        {lang && !activeFlow && <GuidancePanel lang={lang} onStartFlow={startFlow} />}
       </main>
 
       {hydrated && !patient && (
@@ -453,281 +627,6 @@ function IntakeOverlay({
   );
 }
 
-type KeywordEntry = { key: string; label: string; template: string };
-
-const KEYWORD_TEMPLATES: Record<Lang, KeywordEntry[]> = {
-  en: [
-    {
-      key: "fever",
-      label: "Fever",
-      template: [
-        "I would like to ask about fever.",
-        "My temperature is ____.",
-        "It started ____.",
-        "The severity is mild / moderate / severe.",
-        "I have / do not have chest pain, breathing difficulty, confusion, severe headache, or rash.",
-      ].join("\n"),
-    },
-    {
-      key: "headache",
-      label: "Headache",
-      template: [
-        "I have a headache.",
-        "It started ____.",
-        "The pain level is __/10.",
-        "I have / do not have fever, vomiting, confusion, vision changes, weakness, or head injury.",
-      ].join("\n"),
-    },
-    {
-      key: "cough",
-      label: "Cough",
-      template: [
-        "I have a cough.",
-        "It started ____.",
-        "It is dry / with phlegm.",
-        "I have / do not have fever, chest pain, breathing difficulty, or blood in phlegm.",
-      ].join("\n"),
-    },
-    {
-      key: "stomach",
-      label: "Stomach pain",
-      template: [
-        "I have stomach pain.",
-        "It started ____.",
-        "The pain level is __/10.",
-        "The pain is located at ____.",
-        "I have / do not have vomiting, fever, severe pain, blood in stool, or pregnancy.",
-      ].join("\n"),
-    },
-    {
-      key: "medication",
-      label: "Medication question",
-      template: [
-        "I have a question about this medicine: ____.",
-        "I want to know about ____.",
-        "I am currently taking ____.",
-        "I have allergies to ____.",
-      ].join("\n"),
-    },
-    {
-      key: "side-effect",
-      label: "Side effect",
-      template: [
-        "I think I may have a side effect from medicine.",
-        "The medicine is ____.",
-        "The side effect is ____.",
-        "It started ____.",
-        "I have / do not have breathing difficulty, swelling, rash, dizziness, or severe reaction.",
-      ].join("\n"),
-    },
-    {
-      key: "appointment",
-      label: "Appointment preparation",
-      template: [
-        "I have an upcoming appointment.",
-        "I want help preparing what to tell the clinician.",
-        "My main concern is ____.",
-        "It started ____.",
-        "My current medication is ____.",
-        "My questions for the clinician are ____.",
-      ].join("\n"),
-    },
-    {
-      key: "clinician",
-      label: "Request clinician review",
-      template: [
-        "I would like a clinician to review my case.",
-        "My concern is ____.",
-        "It started ____.",
-        "My symptoms are ____.",
-        "The severity is ____.",
-        "I am taking ____.",
-        "My reason for review is ____.",
-      ].join("\n"),
-    },
-  ],
-  zh: [
-    {
-      key: "fever",
-      label: "发烧",
-      template: [
-        "我想询问关于发烧的问题。",
-        "我的体温是 ____。",
-        "症状从 ____ 开始。",
-        "严重程度是：轻微 / 中等 / 严重。",
-        "我有 / 没有 胸痛、呼吸困难、意识混乱、严重头痛或皮疹。",
-      ].join("\n"),
-    },
-    {
-      key: "headache",
-      label: "头痛",
-      template: [
-        "我有头痛。",
-        "症状从 ____ 开始。",
-        "疼痛程度是 __/10。",
-        "我有 / 没有 发烧、呕吐、意识混乱、视力变化、身体无力或头部受伤。",
-      ].join("\n"),
-    },
-    {
-      key: "cough",
-      label: "咳嗽",
-      template: [
-        "我有咳嗽。",
-        "症状从 ____ 开始。",
-        "咳嗽是干咳 / 有痰。",
-        "我有 / 没有 发烧、胸痛、呼吸困难或咳血。",
-      ].join("\n"),
-    },
-    {
-      key: "stomach",
-      label: "肚子痛",
-      template: [
-        "我有肚子痛。",
-        "症状从 ____ 开始。",
-        "疼痛程度是 __/10。",
-        "疼痛位置在 ____。",
-        "我有 / 没有 呕吐、发烧、严重疼痛、大便带血或怀孕。",
-      ].join("\n"),
-    },
-    {
-      key: "medication",
-      label: "药物问题",
-      template: [
-        "我想询问这个药物：____。",
-        "我想知道 ____。",
-        "我目前正在服用 ____。",
-        "我对 ____ 过敏。",
-      ].join("\n"),
-    },
-    {
-      key: "side-effect",
-      label: "副作用",
-      template: [
-        "我觉得我可能有药物副作用。",
-        "药物名称是 ____。",
-        "副作用是 ____。",
-        "症状从 ____ 开始。",
-        "我有 / 没有 呼吸困难、肿胀、皮疹、头晕或严重反应。",
-      ].join("\n"),
-    },
-    {
-      key: "appointment",
-      label: "预约准备",
-      template: [
-        "我有即将到来的医疗预约。",
-        "我想准备要告诉医生的内容。",
-        "我的主要问题是 ____。",
-        "症状从 ____ 开始。",
-        "我目前服用的药物是 ____。",
-        "我想问医生的问题是 ____。",
-      ].join("\n"),
-    },
-    {
-      key: "clinician",
-      label: "请求医生复查",
-      template: [
-        "我想请求医生复查我的情况。",
-        "我的问题是 ____。",
-        "症状从 ____ 开始。",
-        "我的症状包括 ____。",
-        "严重程度是 ____。",
-        "我正在服用 ____。",
-        "我请求复查的原因是 ____。",
-      ].join("\n"),
-    },
-  ],
-  ms: [
-    {
-      key: "fever",
-      label: "Demam",
-      template: [
-        "Saya ingin bertanya tentang demam.",
-        "Suhu badan saya ialah ____.",
-        "Ia bermula ____.",
-        "Tahap keterukan ialah ringan / sederhana / serius.",
-        "Saya ada / tidak ada sakit dada, susah bernafas, keliru, sakit kepala teruk, atau ruam.",
-      ].join("\n"),
-    },
-    {
-      key: "headache",
-      label: "Sakit kepala",
-      template: [
-        "Saya mengalami sakit kepala.",
-        "Ia bermula ____.",
-        "Tahap sakit ialah __/10.",
-        "Saya ada / tidak ada demam, muntah, keliru, perubahan penglihatan, lemah badan, atau kecederaan kepala.",
-      ].join("\n"),
-    },
-    {
-      key: "cough",
-      label: "Batuk",
-      template: [
-        "Saya mengalami batuk.",
-        "Ia bermula ____.",
-        "Batuk ini kering / berkahak.",
-        "Saya ada / tidak ada demam, sakit dada, susah bernafas, atau darah dalam kahak.",
-      ].join("\n"),
-    },
-    {
-      key: "stomach",
-      label: "Sakit perut",
-      template: [
-        "Saya mengalami sakit perut.",
-        "Ia bermula ____.",
-        "Tahap sakit ialah __/10.",
-        "Lokasi sakit ialah ____.",
-        "Saya ada / tidak ada muntah, demam, sakit teruk, darah dalam najis, atau kehamilan.",
-      ].join("\n"),
-    },
-    {
-      key: "medication",
-      label: "Soalan ubat",
-      template: [
-        "Saya ada soalan tentang ubat ini: ____.",
-        "Saya ingin tahu tentang ____.",
-        "Saya sedang mengambil ____.",
-        "Saya mempunyai alahan kepada ____.",
-      ].join("\n"),
-    },
-    {
-      key: "side-effect",
-      label: "Kesan sampingan",
-      template: [
-        "Saya rasa saya mungkin mengalami kesan sampingan ubat.",
-        "Nama ubat ialah ____.",
-        "Kesan sampingan ialah ____.",
-        "Ia bermula ____.",
-        "Saya ada / tidak ada susah bernafas, bengkak, ruam, pening, atau reaksi serius.",
-      ].join("\n"),
-    },
-    {
-      key: "appointment",
-      label: "Persediaan janji temu",
-      template: [
-        "Saya mempunyai janji temu perubatan akan datang.",
-        "Saya mahu bantuan untuk menyediakan maklumat kepada doktor.",
-        "Kebimbangan utama saya ialah ____.",
-        "Ia bermula ____.",
-        "Ubat semasa saya ialah ____.",
-        "Soalan saya untuk doktor ialah ____.",
-      ].join("\n"),
-    },
-    {
-      key: "clinician",
-      label: "Minta semakan doktor",
-      template: [
-        "Saya ingin meminta doktor menyemak kes saya.",
-        "Kebimbangan saya ialah ____.",
-        "Ia bermula ____.",
-        "Simptom saya ialah ____.",
-        "Tahap keterukan ialah ____.",
-        "Saya sedang mengambil ____.",
-        "Sebab saya meminta semakan ialah ____.",
-      ].join("\n"),
-    },
-  ],
-};
-
 const GUIDANCE_COPY: Record<Lang, {
   toggle: string;
   intro: string;
@@ -777,24 +676,24 @@ const GUIDANCE_COPY: Record<Lang, {
 
 function GuidancePanel({
   lang,
-  onPickTemplate,
+  onStartFlow,
 }: {
   lang: Lang;
-  onPickTemplate: (template: string) => void;
+  onStartFlow: (key: FlowKey) => void;
 }) {
   const [open, setOpen] = useState(false);
   const copy = GUIDANCE_COPY[lang];
-  const chips = KEYWORD_TEMPLATES[lang];
+  const chips = FLOW_ORDER.map((key) => ({ key, label: FLOWS[lang][key].label }));
 
   return (
     <div className="mt-3 space-y-3">
-      {/* Quick keyword chips — always visible */}
+      {/* Quick action chips — start a guided flow */}
       <div className="flex flex-wrap gap-2">
         {chips.map((c) => (
           <button
             key={c.key}
             type="button"
-            onClick={() => onPickTemplate(c.template)}
+            onClick={() => onStartFlow(c.key)}
             className="rounded-full border border-medical-blue/30 bg-medical-blue-soft px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-medical-blue/15 sm:text-sm"
           >
             {c.label}
@@ -836,6 +735,48 @@ function GuidancePanel({
     </div>
   );
 }
+
+function FlowAnswers({
+  options,
+  onPick,
+}: {
+  options: {
+    label: string;
+    redFlag?: boolean;
+    freeText?: boolean;
+    requestReview?: boolean;
+    requestPharmacist?: boolean;
+  }[];
+  onPick: (option: {
+    label: string;
+    redFlag?: boolean;
+    freeText?: boolean;
+    requestReview?: boolean;
+    requestPharmacist?: boolean;
+  }) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2 pt-1">
+      {options.map((o) => (
+        <button
+          key={o.label}
+          type="button"
+          onClick={() => onPick(o)}
+          className={
+            o.redFlag
+              ? "rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100 sm:text-sm"
+              : "rounded-full border border-medical-blue/30 bg-medical-blue-soft px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-medical-blue/15 sm:text-sm"
+          }
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+
+
 
 
 function MessageRow({ message }: { message: ChatMessage }) {
