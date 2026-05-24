@@ -156,6 +156,24 @@ export const deactivateUser = createServerFn({ method: "POST" })
       .update({ status: data.active ? "active" : "inactive", updated_at: new Date().toISOString() })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    // Mirror to doctor_accounts when applicable.
+    const { data: refreshed } = await supabaseAdmin
+      .from("user_accounts")
+      .select("role, username, full_name")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (refreshed?.role === "doctor") {
+      if (data.active) {
+        await syncDoctorAccount({ username: refreshed.username, fullName: refreshed.full_name });
+      } else {
+        await supabaseAdmin
+          .from("doctor_accounts")
+          .update({ is_online: false })
+          .eq("username", refreshed.username);
+      }
+    }
+
     await logAudit({
       actorUserId: caller.userId,
       actorRole: caller.role,
@@ -165,6 +183,7 @@ export const deactivateUser = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
 
 export const resetUserPassword = createServerFn({ method: "POST" })
   .inputValidator((d) =>
