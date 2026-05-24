@@ -14,6 +14,8 @@ import {
   type FlowKey,
   type Lang as FlowLang,
 } from "@/lib/chat-flows";
+import { DoctorPickerModal } from "@/components/DoctorPickerModal";
+import { LiveChatPanel } from "@/components/LiveChatPanel";
 
 
 export const Route = createFileRoute("/chat")({
