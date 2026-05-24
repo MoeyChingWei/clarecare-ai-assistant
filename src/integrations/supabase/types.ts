@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      doctor_accounts: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          password_hash: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          full_name: string
+          id?: string
+          password_hash: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          password_hash?: string
+          username?: string
+        }
+        Relationships: []
+      }
       escalated_cases: {
         Row: {
           case_summary: string
