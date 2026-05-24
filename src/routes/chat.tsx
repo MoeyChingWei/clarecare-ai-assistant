@@ -523,7 +523,7 @@ function PatientChat() {
         </div>
 
 
-        {lang && <GuidancePanel lang={lang} onPickTemplate={(t) => setInput(t)} />}
+        {lang && !activeFlow && <GuidancePanel lang={lang} onStartFlow={startFlow} />}
       </main>
 
       {hydrated && !patient && (
