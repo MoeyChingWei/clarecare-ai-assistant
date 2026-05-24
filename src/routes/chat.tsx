@@ -619,3 +619,97 @@ function MessageRow({ message }: { message: ChatMessage }) {
   );
 }
 
+const REVIEW_COPY: Record<Lang, {
+  title: string;
+  body: string;
+  request: string;
+  resolve: string;
+  pending: string;
+  sent: string;
+  resolved: string;
+}> = {
+  en: {
+    title: "Need more help?",
+    body: "If you are still unsure or prefer human support, you can request a clinician review.",
+    request: "Request clinician review",
+    resolve: "Mark as resolved",
+    pending: "Sending request…",
+    sent: "Request sent — a clinician will follow up shortly.",
+    resolved: "Glad we could help. You can start a new question anytime.",
+  },
+  zh: {
+    title: "需要更多帮助？",
+    body: "如果你仍不确定，或希望由真人协助，可以请求医生复查。",
+    request: "请求医生复查",
+    resolve: "标记为已解决",
+    pending: "正在发送请求…",
+    sent: "已发送 — 医生将尽快跟进。",
+    resolved: "很高兴能帮到你。你随时可以提出新的问题。",
+  },
+  ms: {
+    title: "Perlukan bantuan lanjut?",
+    body: "Jika anda masih tidak pasti atau lebih suka bantuan manusia, anda boleh meminta semakan doktor.",
+    request: "Minta semakan doktor",
+    resolve: "Tanda sebagai selesai",
+    pending: "Menghantar permintaan…",
+    sent: "Permintaan dihantar — doktor akan menghubungi anda tidak lama lagi.",
+    resolved: "Gembira dapat membantu. Anda boleh mulakan soalan baharu pada bila-bila masa.",
+  },
+};
+
+function ReviewCard({
+  lang,
+  state,
+  onRequestReview,
+  onResolve,
+}: {
+  lang: Lang;
+  state: "idle" | "pending" | "sent" | "resolved";
+  onRequestReview: () => void;
+  onResolve: () => void;
+}) {
+  const c = REVIEW_COPY[lang];
+
+  if (state === "sent") {
+    return (
+      <div className="rounded-2xl border border-medical-green/30 bg-medical-green-soft px-4 py-3 text-sm text-foreground">
+        ✓ {c.sent}
+      </div>
+    );
+  }
+
+  if (state === "resolved") {
+    return (
+      <div className="rounded-2xl border border-medical-green/30 bg-medical-green-soft px-4 py-3 text-sm text-foreground">
+        ✓ {c.resolved}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-medical-blue/20 bg-medical-blue-soft/50 p-4 shadow-sm">
+      <p className="font-display text-sm font-semibold text-foreground">{c.title}</p>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{c.body}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onRequestReview}
+          disabled={state === "pending"}
+          className="inline-flex items-center rounded-xl bg-medical-blue px-3 py-2 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {state === "pending" ? c.pending : c.request}
+        </button>
+        <button
+          type="button"
+          onClick={onResolve}
+          disabled={state === "pending"}
+          className="inline-flex items-center rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+        >
+          {c.resolve}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
