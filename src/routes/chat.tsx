@@ -193,24 +193,23 @@ function PatientChat() {
       </div>
 
       {/* Minimal patient header — logo only, no clinician/admin links */}
-      <header className="sticky top-[26px] z-30 border-b border-border/70 bg-background/85 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center px-4">
+      <header className="border-b border-border/70 bg-background/85 backdrop-blur">
+        <div className="mx-auto flex h-12 max-w-6xl items-center px-4 md:h-14">
           <Link to="/" className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-medical-blue text-primary-foreground">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-medical-blue text-primary-foreground md:h-8 md:w-8">
               <Stethoscope className="h-4 w-4" />
             </span>
-            <span className="font-display text-lg font-semibold tracking-tight">
+            <span className="font-display text-base font-semibold tracking-tight md:text-lg">
               ClareCare
             </span>
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-4 pt-4">
+      <main className="mx-auto flex w-full min-h-0 max-w-2xl flex-1 flex-col px-3 pb-2 pt-2 md:px-4 md:pb-4 md:pt-4">
         <div
           ref={scrollRef}
-          className="flex-1 space-y-4 overflow-y-auto rounded-2xl border border-border/70 bg-card p-4 shadow-sm"
-          style={{ maxHeight: "calc(100vh - 220px)" }}
+          className="flex-1 min-h-0 space-y-4 overflow-y-auto rounded-2xl border border-border/70 bg-card p-3 shadow-sm md:p-4"
         >
           {messages.map((m) => (
             <MessageRow
