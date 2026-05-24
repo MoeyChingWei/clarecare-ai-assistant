@@ -209,6 +209,7 @@ function PatientChat() {
           className="mt-3 flex items-end gap-2 rounded-2xl border border-border/70 bg-card p-2 shadow-sm focus-within:ring-2 focus-within:ring-ring/50"
         >
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -218,14 +219,15 @@ function PatientChat() {
               }
             }}
             placeholder="Describe symptoms or ask a question…"
-            rows={1}
-            className="max-h-32 flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
+            rows={2}
+            style={{ minHeight: 56, maxHeight: 160 }}
+            className="min-w-0 flex-1 resize-none overflow-y-auto whitespace-pre-wrap break-words bg-transparent px-3 py-3 text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
             disabled={pending || !patient}
           />
           <button
             type="submit"
             disabled={pending || !input.trim() || !patient}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-medical-blue text-primary-foreground transition-opacity disabled:opacity-40"
+            className="flex h-10 w-10 shrink-0 items-center justify-center self-end rounded-xl bg-medical-blue text-primary-foreground transition-opacity disabled:opacity-40"
             aria-label="Send"
           >
             <Send className="h-4 w-4" />
