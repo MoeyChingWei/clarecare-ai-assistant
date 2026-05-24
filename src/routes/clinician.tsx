@@ -306,12 +306,7 @@ function ClinicianDashboard() {
                       {a.patient_phone}
                     </p>
                   )}
-                  {a.case?.case_summary && (
-                    <p className="mt-2 line-clamp-2 text-xs text-foreground/80">
-                      {a.case.case_summary}
-                    </p>
-                  )}
-                  <p className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <p className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     {formatRelative(a.created_at)}
                   </p>
