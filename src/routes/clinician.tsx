@@ -137,7 +137,7 @@ function ClinicianDashboard() {
   };
 
   const { data: assignments = [], isLoading } = useQuery({
-    enabled: !!doctor,
+    enabled: !!doctor && !!doctor.id,
     queryKey: ["my_assignments", doctor?.id],
     queryFn: async (): Promise<AssignmentRow[]> => {
       const { data: rows, error } = await supabase
