@@ -226,7 +226,37 @@ function PatientChat() {
             </div>
           )}
           {error && <p className="px-1 text-xs text-destructive">{error}</p>}
-        </div>
+
+          {!lang && (
+            <div className="flex flex-wrap gap-2 px-1 pt-1">
+              {([
+                { code: "en", label: "English" },
+                { code: "zh", label: "中文" },
+                { code: "ms", label: "Bahasa Melayu" },
+              ] as const).map((l) => (
+                <button
+                  key={l.code}
+                  type="button"
+                  onClick={() => {
+                    setLang(l.code);
+                    setMessages((m) => [
+                      ...m,
+                      { id: makeId(), role: "user", content: l.label },
+                      {
+                        id: makeId(),
+                        role: "assistant",
+                        content: LANG_THANKS[l.code],
+                        reviewState: "idle",
+                      },
+                    ]);
+                  }}
+                  className="rounded-full border border-medical-blue/30 bg-medical-blue-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-medical-blue/20"
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          )}
 
         <form
           onSubmit={(e) => {
