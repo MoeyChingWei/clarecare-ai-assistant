@@ -97,6 +97,9 @@ function PatientChat() {
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reviewState, setReviewState] = useState<
+    "idle" | "pending" | "sent" | "resolved"
+  >("idle");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -158,11 +161,9 @@ function PatientChat() {
     }
   };
 
-  const handleReviewRequest = async (messageId: string) => {
+  const handleReviewRequest = async () => {
     if (!patient) return;
-    setMessages((m) =>
-      m.map((msg) => (msg.id === messageId ? { ...msg, reviewState: "pending" } : msg)),
-    );
+    setReviewState("pending");
     try {
       await review({
         data: {
@@ -171,17 +172,22 @@ function PatientChat() {
           patientPhone: patient.phone,
         },
       });
-      setMessages((m) =>
-        m.map((msg) => (msg.id === messageId ? { ...msg, reviewState: "sent" } : msg)),
-      );
+      setReviewState("sent");
     } catch (e) {
       console.error(e);
-      setMessages((m) =>
-        m.map((msg) => (msg.id === messageId ? { ...msg, reviewState: "idle" } : msg)),
-      );
+      setReviewState("idle");
       setError("Couldn't submit review request. Please try again.");
     }
   };
+
+  const hasUserMessage = messages.some((m) => m.role === "user" && m.content !== "English" && m.content !== "中文" && m.content !== "Bahasa Melayu");
+  const hasAssistantReply = (() => {
+    const lastUserIdx = [...messages].reverse().findIndex((m) => m.role === "user");
+    if (lastUserIdx === -1) return false;
+    const idx = messages.length - 1 - lastUserIdx;
+    return messages.slice(idx + 1).some((m) => m.role === "assistant");
+  })();
+  const showReviewCard = !!lang && hasUserMessage && hasAssistantReply && !pending;
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-medical-blue-soft/40 via-background to-background">
@@ -212,11 +218,7 @@ function PatientChat() {
           className="flex-1 min-h-0 space-y-4 overflow-y-auto rounded-2xl border border-border/70 bg-card p-3 shadow-sm md:p-4"
         >
           {messages.map((m) => (
-            <MessageRow
-              key={m.id}
-              message={m}
-              onRequestReview={() => handleReviewRequest(m.id)}
-            />
+            <MessageRow key={m.id} message={m} />
           ))}
           {pending && (
             <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
@@ -255,6 +257,15 @@ function PatientChat() {
                 </button>
               ))}
             </div>
+          )}
+
+          {showReviewCard && lang && (
+            <ReviewCard
+              lang={lang}
+              state={reviewState}
+              onRequestReview={handleReviewRequest}
+              onResolve={() => setReviewState("resolved")}
+            />
           )}
         </div>
 
@@ -572,13 +583,7 @@ function QuickButton({
   );
 }
 
-function MessageRow({
-  message,
-  onRequestReview,
-}: {
-  message: ChatMessage;
-  onRequestReview: () => void;
-}) {
+function MessageRow({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
 
   if (isUser) {
@@ -592,7 +597,6 @@ function MessageRow({
   }
 
   const escalated = !!message.escalated;
-  const reviewState = message.reviewState ?? "idle";
 
   return (
     <div className="flex flex-col items-start gap-1.5">
@@ -600,32 +604,112 @@ function MessageRow({
         <p className="whitespace-pre-wrap">{message.content}</p>
       </div>
 
-      <span
-        className={
-          escalated
-            ? "inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800"
-            : "inline-flex items-center gap-1 rounded-full border border-medical-green/30 bg-medical-green-soft px-2 py-0.5 text-[11px] font-medium text-foreground"
-        }
-      >
-        {escalated ? "🔔 Flagging for clinician" : "✓ Handled by ClareCare"}
-      </span>
-
-      {reviewState === "sent" ? (
-        <span className="text-[11px] italic text-muted-foreground">
-          Request sent — a clinician will follow up.
-        </span>
-      ) : (
-        <button
-          type="button"
-          onClick={onRequestReview}
-          disabled={reviewState === "pending"}
-          className="text-[11px] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+      {(escalated || message.urgency) && (
+        <span
+          className={
+            escalated
+              ? "inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800"
+              : "inline-flex items-center gap-1 rounded-full border border-medical-green/30 bg-medical-green-soft px-2 py-0.5 text-[11px] font-medium text-foreground"
+          }
         >
-          {reviewState === "pending"
-            ? "Sending request…"
-            : "Prefer to speak to someone? Request review"}
-        </button>
+          {escalated ? "🔔 Flagging for clinician" : "✓ Handled by ClareCare"}
+        </span>
       )}
     </div>
   );
 }
+
+const REVIEW_COPY: Record<Lang, {
+  title: string;
+  body: string;
+  request: string;
+  resolve: string;
+  pending: string;
+  sent: string;
+  resolved: string;
+}> = {
+  en: {
+    title: "Need more help?",
+    body: "If you are still unsure or prefer human support, you can request a clinician review.",
+    request: "Request clinician review",
+    resolve: "Mark as resolved",
+    pending: "Sending request…",
+    sent: "Request sent — a clinician will follow up shortly.",
+    resolved: "Glad we could help. You can start a new question anytime.",
+  },
+  zh: {
+    title: "需要更多帮助？",
+    body: "如果你仍不确定，或希望由真人协助，可以请求医生复查。",
+    request: "请求医生复查",
+    resolve: "标记为已解决",
+    pending: "正在发送请求…",
+    sent: "已发送 — 医生将尽快跟进。",
+    resolved: "很高兴能帮到你。你随时可以提出新的问题。",
+  },
+  ms: {
+    title: "Perlukan bantuan lanjut?",
+    body: "Jika anda masih tidak pasti atau lebih suka bantuan manusia, anda boleh meminta semakan doktor.",
+    request: "Minta semakan doktor",
+    resolve: "Tanda sebagai selesai",
+    pending: "Menghantar permintaan…",
+    sent: "Permintaan dihantar — doktor akan menghubungi anda tidak lama lagi.",
+    resolved: "Gembira dapat membantu. Anda boleh mulakan soalan baharu pada bila-bila masa.",
+  },
+};
+
+function ReviewCard({
+  lang,
+  state,
+  onRequestReview,
+  onResolve,
+}: {
+  lang: Lang;
+  state: "idle" | "pending" | "sent" | "resolved";
+  onRequestReview: () => void;
+  onResolve: () => void;
+}) {
+  const c = REVIEW_COPY[lang];
+
+  if (state === "sent") {
+    return (
+      <div className="rounded-2xl border border-medical-green/30 bg-medical-green-soft px-4 py-3 text-sm text-foreground">
+        ✓ {c.sent}
+      </div>
+    );
+  }
+
+  if (state === "resolved") {
+    return (
+      <div className="rounded-2xl border border-medical-green/30 bg-medical-green-soft px-4 py-3 text-sm text-foreground">
+        ✓ {c.resolved}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-medical-blue/20 bg-medical-blue-soft/50 p-4 shadow-sm">
+      <p className="font-display text-sm font-semibold text-foreground">{c.title}</p>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{c.body}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onRequestReview}
+          disabled={state === "pending"}
+          className="inline-flex items-center rounded-xl bg-medical-blue px-3 py-2 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {state === "pending" ? c.pending : c.request}
+        </button>
+        <button
+          type="button"
+          onClick={onResolve}
+          disabled={state === "pending"}
+          className="inline-flex items-center rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+        >
+          {c.resolve}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
