@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ClinicianRouteImport } from './routes/clinician'
+import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
 const ClinicianRoute = ClinicianRouteImport.update({
   id: '/clinician',
   path: '/clinician',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -32,30 +38,34 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/chat': typeof ChatRoute
   '/clinician': typeof ClinicianRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/chat': typeof ChatRoute
   '/clinician': typeof ClinicianRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/chat': typeof ChatRoute
   '/clinician': typeof ClinicianRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/clinician'
+  fullPaths: '/' | '/admin' | '/chat' | '/clinician'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/clinician'
-  id: '__root__' | '/' | '/admin' | '/clinician'
+  to: '/' | '/admin' | '/chat' | '/clinician'
+  id: '__root__' | '/' | '/admin' | '/chat' | '/clinician'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  ChatRoute: typeof ChatRoute
   ClinicianRoute: typeof ClinicianRoute
 }
 
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/clinician'
       fullPath: '/clinician'
       preLoaderRoute: typeof ClinicianRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  ChatRoute: ChatRoute,
   ClinicianRoute: ClinicianRoute,
 }
 export const routeTree = rootRouteImport

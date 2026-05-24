@@ -43,6 +43,8 @@ interface CaseRow {
   status: Status;
   created_at: string;
   resolved_at: string | null;
+  patient_name: string | null;
+  patient_phone: string | null;
 }
 
 const URGENCY_RANK: Record<Urgency, number> = { high: 0, medium: 1, low: 2 };
@@ -195,6 +197,22 @@ function CaseCard({
           {formatRelative(c.created_at)}
         </time>
       </div>
+
+      {(c.patient_name || c.patient_phone) && (
+        <div className="mt-3 rounded-lg border border-border/60 bg-medical-blue-soft/40 px-3 py-2 text-xs">
+          {c.patient_name && (
+            <p className="font-semibold text-foreground">{c.patient_name}</p>
+          )}
+          {c.patient_phone && (
+            <a
+              href={`tel:${c.patient_phone}`}
+              className="text-medical-blue underline-offset-2 hover:underline"
+            >
+              {c.patient_phone}
+            </a>
+          )}
+        </div>
+      )}
 
       <p className="mt-3 line-clamp-2 text-sm font-medium text-foreground">
         “{c.patient_query}”

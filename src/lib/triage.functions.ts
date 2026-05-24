@@ -7,8 +7,13 @@ const MessageSchema = z.object({
   content: z.string().min(1).max(4000),
 });
 
+const PatientNameSchema = z.string().trim().min(1).max(100).optional();
+const PatientPhoneSchema = z.string().trim().min(1).max(30).optional();
+
 const InputSchema = z.object({
   messages: z.array(MessageSchema).min(1).max(40),
+  patientName: PatientNameSchema,
+  patientPhone: PatientPhoneSchema,
 });
 
 const SAFETY_RULES = `
@@ -110,6 +115,8 @@ export const triageMessage = createServerFn({ method: "POST" })
     const lastUser = [...data.messages].reverse().find((m) => m.role === "user");
     const patientQuery = lastUser?.content ?? "";
     const lowerQuery = patientQuery.toLowerCase();
+    const patientName = data.patientName ?? null;
+    const patientPhone = data.patientPhone ?? null;
 
     // 1. Red flag pre-check
     const { data: rules } = await supabaseAdmin
@@ -132,6 +139,8 @@ export const triageMessage = createServerFn({ method: "POST" })
           urgency: matchedRule.urgency,
           case_summary: `Red-flag keyword "${matchedRule.keyword}" detected in patient message. Auto-escalated by safety rules.`,
           status: "open",
+          patient_name: patientName,
+          patient_phone: patientPhone,
         })
         .select("id")
         .single();
@@ -179,6 +188,8 @@ export const triageMessage = createServerFn({ method: "POST" })
           urgency: result.urgency_level,
           case_summary: result.ai_summary || result.escalation_reason || "",
           status: "open",
+          patient_name: patientName,
+          patient_phone: patientPhone,
         })
         .select("id")
         .single();
@@ -198,6 +209,8 @@ export const triageMessage = createServerFn({ method: "POST" })
 
 const ReviewInputSchema = z.object({
   messages: z.array(MessageSchema).min(1).max(40),
+  patientName: PatientNameSchema,
+  patientPhone: PatientPhoneSchema,
 });
 
 export const requestHumanReview = createServerFn({ method: "POST" })
@@ -219,6 +232,8 @@ export const requestHumanReview = createServerFn({ method: "POST" })
         urgency: "low",
         case_summary: `Patient explicitly requested to speak with a clinician.\n\nRecent conversation:\n${transcript}`,
         status: "open",
+        patient_name: data.patientName ?? null,
+        patient_phone: data.patientPhone ?? null,
       })
       .select("id")
       .single();
