@@ -40,19 +40,6 @@ function LandingPage() {
         </p>
       </div>
 
-      {/* Header — logo only */}
-      <header className="border-b border-border/70 bg-background/70 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-medical-blue text-primary-foreground">
-              <Stethoscope className="h-4 w-4" />
-            </span>
-            <span className="font-display text-lg font-semibold tracking-tight">
-              ClareCare
-            </span>
-          </Link>
-        </div>
-      </header>
 
       {/* Hero */}
       <section className="px-4 pb-12 pt-16 text-center sm:pt-24">
