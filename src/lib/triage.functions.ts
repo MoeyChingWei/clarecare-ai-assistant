@@ -16,6 +16,30 @@ const InputSchema = z.object({
   patientPhone: PatientPhoneSchema,
 });
 
+const PHARMACIST_KEYWORDS = [
+  "medication",
+  "medicine",
+  "refill",
+  "prescription",
+  "dosage",
+  "dose",
+  "side effect",
+  "side-effect",
+  "drug interaction",
+  "interaction",
+  "pill",
+  "tablet",
+  "pharmacy",
+  "pharmacist",
+];
+
+function recommendRouting(text: string): "clinician" | "pharmacist" {
+  const lower = text.toLowerCase();
+  return PHARMACIST_KEYWORDS.some((k) => lower.includes(k))
+    ? "pharmacist"
+    : "clinician";
+}
+
 const SAFETY_RULES = `
 SAFETY RULES (ABSOLUTE):
 - You must NEVER diagnose.
