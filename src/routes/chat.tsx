@@ -54,10 +54,11 @@ If this is an emergency, please call 999 or seek urgent medical care.`;
 const LANG_PROMPT = "Before we continue, please choose your preferred language.";
 
 const LANG_THANKS: Record<Lang, string> = {
-  en: "Thanks. Please describe your symptom or ask your health question.",
-  zh: "谢谢。请描述你的症状，或输入你想询问的健康问题。",
-  ms: "Terima kasih. Sila terangkan simptom anda atau tanya soalan kesihatan anda.",
+  en: "Thanks. You can now describe your symptom, ask a general health question, or choose one of the quick options below.",
+  zh: "谢谢。你现在可以描述你的症状、输入健康问题，或选择下面的快速选项。",
+  ms: "Terima kasih. Anda boleh menerangkan simptom, bertanya soalan kesihatan, atau memilih pilihan pantas di bawah.",
 };
+
 
 const INPUT_PLACEHOLDER: Record<Lang, string> = {
   en: "Describe symptoms or ask a question…",
@@ -452,41 +453,286 @@ function IntakeOverlay({
   );
 }
 
-const TEMPLATES: Record<string, string> = {
-  general: "I would like to ask about ____.",
-  symptom: [
-    "My main symptom is ____.",
-    "It started ____.",
-    "The severity is __/10.",
-    "I have / do not have chest pain, breathing difficulty, bleeding, confusion, or fainting.",
-    "I am taking ____.",
-    "I have allergies to ____.",
-  ].join("\n"),
-  medication: [
-    "I have a question about this medicine: ____.",
-    "I want to know about ____.",
-    "I am currently taking ____.",
-    "I have allergies to ____.",
-  ].join("\n"),
-  clinician: [
-    "I would like a clinician to review my case.",
-    "My concern is ____.",
-    "It started ____.",
-    "My symptoms are ____.",
-    "The severity is ____.",
-    "I am taking ____.",
-    "My reason for review is ____.",
-  ].join("\n"),
-};
+type KeywordEntry = { key: string; label: string; template: string };
 
+const KEYWORD_TEMPLATES: Record<Lang, KeywordEntry[]> = {
+  en: [
+    {
+      key: "fever",
+      label: "Fever",
+      template: [
+        "I would like to ask about fever.",
+        "My temperature is ____.",
+        "It started ____.",
+        "The severity is mild / moderate / severe.",
+        "I have / do not have chest pain, breathing difficulty, confusion, severe headache, or rash.",
+      ].join("\n"),
+    },
+    {
+      key: "headache",
+      label: "Headache",
+      template: [
+        "I have a headache.",
+        "It started ____.",
+        "The pain level is __/10.",
+        "I have / do not have fever, vomiting, confusion, vision changes, weakness, or head injury.",
+      ].join("\n"),
+    },
+    {
+      key: "cough",
+      label: "Cough",
+      template: [
+        "I have a cough.",
+        "It started ____.",
+        "It is dry / with phlegm.",
+        "I have / do not have fever, chest pain, breathing difficulty, or blood in phlegm.",
+      ].join("\n"),
+    },
+    {
+      key: "stomach",
+      label: "Stomach pain",
+      template: [
+        "I have stomach pain.",
+        "It started ____.",
+        "The pain level is __/10.",
+        "The pain is located at ____.",
+        "I have / do not have vomiting, fever, severe pain, blood in stool, or pregnancy.",
+      ].join("\n"),
+    },
+    {
+      key: "medication",
+      label: "Medication question",
+      template: [
+        "I have a question about this medicine: ____.",
+        "I want to know about ____.",
+        "I am currently taking ____.",
+        "I have allergies to ____.",
+      ].join("\n"),
+    },
+    {
+      key: "side-effect",
+      label: "Side effect",
+      template: [
+        "I think I may have a side effect from medicine.",
+        "The medicine is ____.",
+        "The side effect is ____.",
+        "It started ____.",
+        "I have / do not have breathing difficulty, swelling, rash, dizziness, or severe reaction.",
+      ].join("\n"),
+    },
+    {
+      key: "appointment",
+      label: "Appointment preparation",
+      template: [
+        "I have an upcoming appointment.",
+        "I want help preparing what to tell the clinician.",
+        "My main concern is ____.",
+        "It started ____.",
+        "My current medication is ____.",
+        "My questions for the clinician are ____.",
+      ].join("\n"),
+    },
+    {
+      key: "clinician",
+      label: "Request clinician review",
+      template: [
+        "I would like a clinician to review my case.",
+        "My concern is ____.",
+        "It started ____.",
+        "My symptoms are ____.",
+        "The severity is ____.",
+        "I am taking ____.",
+        "My reason for review is ____.",
+      ].join("\n"),
+    },
+  ],
+  zh: [
+    {
+      key: "fever",
+      label: "发烧",
+      template: [
+        "我想询问关于发烧的问题。",
+        "我的体温是 ____。",
+        "症状从 ____ 开始。",
+        "严重程度是：轻微 / 中等 / 严重。",
+        "我有 / 没有 胸痛、呼吸困难、意识混乱、严重头痛或皮疹。",
+      ].join("\n"),
+    },
+    {
+      key: "headache",
+      label: "头痛",
+      template: [
+        "我有头痛。",
+        "症状从 ____ 开始。",
+        "疼痛程度是 __/10。",
+        "我有 / 没有 发烧、呕吐、意识混乱、视力变化、身体无力或头部受伤。",
+      ].join("\n"),
+    },
+    {
+      key: "cough",
+      label: "咳嗽",
+      template: [
+        "我有咳嗽。",
+        "症状从 ____ 开始。",
+        "咳嗽是干咳 / 有痰。",
+        "我有 / 没有 发烧、胸痛、呼吸困难或咳血。",
+      ].join("\n"),
+    },
+    {
+      key: "stomach",
+      label: "肚子痛",
+      template: [
+        "我有肚子痛。",
+        "症状从 ____ 开始。",
+        "疼痛程度是 __/10。",
+        "疼痛位置在 ____。",
+        "我有 / 没有 呕吐、发烧、严重疼痛、大便带血或怀孕。",
+      ].join("\n"),
+    },
+    {
+      key: "medication",
+      label: "药物问题",
+      template: [
+        "我想询问这个药物：____。",
+        "我想知道 ____。",
+        "我目前正在服用 ____。",
+        "我对 ____ 过敏。",
+      ].join("\n"),
+    },
+    {
+      key: "side-effect",
+      label: "副作用",
+      template: [
+        "我觉得我可能有药物副作用。",
+        "药物名称是 ____。",
+        "副作用是 ____。",
+        "症状从 ____ 开始。",
+        "我有 / 没有 呼吸困难、肿胀、皮疹、头晕或严重反应。",
+      ].join("\n"),
+    },
+    {
+      key: "appointment",
+      label: "预约准备",
+      template: [
+        "我有即将到来的医疗预约。",
+        "我想准备要告诉医生的内容。",
+        "我的主要问题是 ____。",
+        "症状从 ____ 开始。",
+        "我目前服用的药物是 ____。",
+        "我想问医生的问题是 ____。",
+      ].join("\n"),
+    },
+    {
+      key: "clinician",
+      label: "请求医生复查",
+      template: [
+        "我想请求医生复查我的情况。",
+        "我的问题是 ____。",
+        "症状从 ____ 开始。",
+        "我的症状包括 ____。",
+        "严重程度是 ____。",
+        "我正在服用 ____。",
+        "我请求复查的原因是 ____。",
+      ].join("\n"),
+    },
+  ],
+  ms: [
+    {
+      key: "fever",
+      label: "Demam",
+      template: [
+        "Saya ingin bertanya tentang demam.",
+        "Suhu badan saya ialah ____.",
+        "Ia bermula ____.",
+        "Tahap keterukan ialah ringan / sederhana / serius.",
+        "Saya ada / tidak ada sakit dada, susah bernafas, keliru, sakit kepala teruk, atau ruam.",
+      ].join("\n"),
+    },
+    {
+      key: "headache",
+      label: "Sakit kepala",
+      template: [
+        "Saya mengalami sakit kepala.",
+        "Ia bermula ____.",
+        "Tahap sakit ialah __/10.",
+        "Saya ada / tidak ada demam, muntah, keliru, perubahan penglihatan, lemah badan, atau kecederaan kepala.",
+      ].join("\n"),
+    },
+    {
+      key: "cough",
+      label: "Batuk",
+      template: [
+        "Saya mengalami batuk.",
+        "Ia bermula ____.",
+        "Batuk ini kering / berkahak.",
+        "Saya ada / tidak ada demam, sakit dada, susah bernafas, atau darah dalam kahak.",
+      ].join("\n"),
+    },
+    {
+      key: "stomach",
+      label: "Sakit perut",
+      template: [
+        "Saya mengalami sakit perut.",
+        "Ia bermula ____.",
+        "Tahap sakit ialah __/10.",
+        "Lokasi sakit ialah ____.",
+        "Saya ada / tidak ada muntah, demam, sakit teruk, darah dalam najis, atau kehamilan.",
+      ].join("\n"),
+    },
+    {
+      key: "medication",
+      label: "Soalan ubat",
+      template: [
+        "Saya ada soalan tentang ubat ini: ____.",
+        "Saya ingin tahu tentang ____.",
+        "Saya sedang mengambil ____.",
+        "Saya mempunyai alahan kepada ____.",
+      ].join("\n"),
+    },
+    {
+      key: "side-effect",
+      label: "Kesan sampingan",
+      template: [
+        "Saya rasa saya mungkin mengalami kesan sampingan ubat.",
+        "Nama ubat ialah ____.",
+        "Kesan sampingan ialah ____.",
+        "Ia bermula ____.",
+        "Saya ada / tidak ada susah bernafas, bengkak, ruam, pening, atau reaksi serius.",
+      ].join("\n"),
+    },
+    {
+      key: "appointment",
+      label: "Persediaan janji temu",
+      template: [
+        "Saya mempunyai janji temu perubatan akan datang.",
+        "Saya mahu bantuan untuk menyediakan maklumat kepada doktor.",
+        "Kebimbangan utama saya ialah ____.",
+        "Ia bermula ____.",
+        "Ubat semasa saya ialah ____.",
+        "Soalan saya untuk doktor ialah ____.",
+      ].join("\n"),
+    },
+    {
+      key: "clinician",
+      label: "Minta semakan doktor",
+      template: [
+        "Saya ingin meminta doktor menyemak kes saya.",
+        "Kebimbangan saya ialah ____.",
+        "Ia bermula ____.",
+        "Simptom saya ialah ____.",
+        "Tahap keterukan ialah ____.",
+        "Saya sedang mengambil ____.",
+        "Sebab saya meminta semakan ialah ____.",
+      ].join("\n"),
+    },
+  ],
+};
 
 const GUIDANCE_COPY: Record<Lang, {
   toggle: string;
   intro: string;
   items: string[];
   emergency: string;
-  templatesTitle: string;
-  buttons: { general: string; symptom: string; medication: string; clinician: string };
 }> = {
   en: {
     toggle: "What should I include?",
@@ -500,13 +746,6 @@ const GUIDANCE_COPY: Record<Lang, {
       "Whether you want general advice, pharmacist review, or clinician review",
     ],
     emergency: "If this is an emergency, call 999 or seek urgent medical care immediately.",
-    templatesTitle: "Quick start templates",
-    buttons: {
-      general: "General health question",
-      symptom: "Symptom check",
-      medication: "Medication question",
-      clinician: "Request clinician review",
-    },
   },
   zh: {
     toggle: "我应该包含什么？",
@@ -520,13 +759,6 @@ const GUIDANCE_COPY: Record<Lang, {
       "你需要一般建议、药剂师复查，还是医生复查",
     ],
     emergency: "如果这是紧急情况，请立刻拨打 999 或寻求紧急医疗帮助。",
-    templatesTitle: "快速开始模板",
-    buttons: {
-      general: "一般健康问题",
-      symptom: "症状检查",
-      medication: "药物问题",
-      clinician: "请求医生复查",
-    },
   },
   ms: {
     toggle: "Apa yang patut saya sertakan?",
@@ -540,13 +772,6 @@ const GUIDANCE_COPY: Record<Lang, {
       "Sama ada anda mahu nasihat umum, semakan ahli farmasi, atau semakan doktor",
     ],
     emergency: "Jika ini kecemasan, sila hubungi 999 atau dapatkan rawatan kecemasan segera.",
-    templatesTitle: "Templat permulaan pantas",
-    buttons: {
-      general: "Soalan kesihatan umum",
-      symptom: "Semakan simptom",
-      medication: "Soalan ubat",
-      clinician: "Minta semakan doktor",
-    },
   },
 };
 
@@ -559,14 +784,25 @@ function GuidancePanel({
 }) {
   const [open, setOpen] = useState(false);
   const copy = GUIDANCE_COPY[lang];
-
-  const pick = (key: keyof typeof TEMPLATES) => {
-    onPickTemplate(TEMPLATES[key]);
-    setOpen(false);
-  };
+  const chips = KEYWORD_TEMPLATES[lang];
 
   return (
-    <div className="mt-3">
+    <div className="mt-3 space-y-3">
+      {/* Quick keyword chips — always visible */}
+      <div className="flex flex-wrap gap-2">
+        {chips.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            onClick={() => onPickTemplate(c.template)}
+            className="rounded-full border border-medical-blue/30 bg-medical-blue-soft px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-medical-blue/15 sm:text-sm"
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Collapsible "what should I include?" guide */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -585,7 +821,7 @@ function GuidancePanel({
       </button>
 
       {open && (
-        <div className="mt-2 rounded-2xl border border-medical-blue/20 bg-card p-4 text-sm shadow-sm">
+        <div className="rounded-2xl border border-medical-blue/20 bg-card p-4 text-sm shadow-sm">
           <p className="text-muted-foreground">{copy.intro}</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-foreground/90">
             {copy.items.map((it, i) => (
@@ -595,39 +831,12 @@ function GuidancePanel({
           <p className="mt-3 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-800">
             {copy.emergency}
           </p>
-
-          <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {copy.templatesTitle}
-          </p>
-          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <QuickButton onClick={() => pick("general")}>{copy.buttons.general}</QuickButton>
-            <QuickButton onClick={() => pick("symptom")}>{copy.buttons.symptom}</QuickButton>
-            <QuickButton onClick={() => pick("medication")}>{copy.buttons.medication}</QuickButton>
-            <QuickButton onClick={() => pick("clinician")}>{copy.buttons.clinician}</QuickButton>
-          </div>
         </div>
       )}
     </div>
   );
 }
 
-function QuickButton({
-  onClick,
-  children,
-}: {
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-xl border border-medical-green/30 bg-medical-green-soft px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-medical-green/20"
-    >
-      {children}
-    </button>
-  );
-}
 
 function MessageRow({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
