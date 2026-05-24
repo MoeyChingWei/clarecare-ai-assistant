@@ -53,6 +53,9 @@ export const createUser = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    if (data.role === "doctor" && data.status === "active") {
+      await syncDoctorAccount({ username: data.username, fullName: data.fullName });
+    }
     await logAudit({
       actorUserId: caller.userId,
       actorRole: caller.role,
@@ -63,6 +66,7 @@ export const createUser = createServerFn({ method: "POST" })
     });
     return { ok: true, id: created.id };
   });
+
 
 export const updateUser = createServerFn({ method: "POST" })
   .inputValidator((d) =>
