@@ -516,7 +516,7 @@ function PatientChat() {
             />
           )}
 
-          {showReviewCard && lang && (
+          {showReviewCard && lang && !assignment && (
             <ReviewCard
               lang={lang}
               state={reviewState}
@@ -524,7 +524,25 @@ function PatientChat() {
               onResolve={() => setReviewState("resolved")}
             />
           )}
+
+          {assignment && patient && (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                Now connected to Dr. {assignment.doctorName}
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <LiveChatPanel
+                assignmentId={assignment.assignmentId}
+                selfRole="patient"
+                doctorName={assignment.doctorName}
+                variant="patient"
+                heightClass="max-h-72"
+              />
+            </div>
+          )}
         </div>
+
 
 
         <div className="relative mt-3">
