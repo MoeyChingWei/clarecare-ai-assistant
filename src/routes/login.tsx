@@ -40,12 +40,8 @@ function LoginPage() {
     if (s) navigate({ to: homeForRole(s.role) });
   }, [navigate]);
 
-  const goBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      window.history.back();
-    } else {
-      navigate({ to: "/" });
-    }
+  const goHome = () => {
+    navigate({ to: "/" });
   };
 
   const onSubmit = async (e: FormEvent) => {
@@ -100,15 +96,15 @@ function LoginPage() {
 
   return (
     <div className="relative grid min-h-[100dvh] place-items-center bg-gradient-to-b from-medical-blue-soft/40 via-background to-background px-4">
-      {/* Back button */}
+      {/* Back to home */}
       <button
         type="button"
-        onClick={goBack}
+        onClick={goHome}
         className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-border/70 bg-card/80 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground sm:left-4 sm:top-4"
-        aria-label="Back"
+        aria-label="Back to home"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Back
+        Back to Home
       </button>
 
       <div className="w-full max-w-sm">
