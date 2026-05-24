@@ -258,6 +258,15 @@ function PatientChat() {
               ))}
             </div>
           )}
+
+          {showReviewCard && lang && (
+            <ReviewCard
+              lang={lang}
+              state={reviewState}
+              onRequestReview={handleReviewRequest}
+              onResolve={() => setReviewState("resolved")}
+            />
+          )}
         </div>
 
         <form
