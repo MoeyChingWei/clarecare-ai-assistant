@@ -257,6 +257,7 @@ function PatientChat() {
               ))}
             </div>
           )}
+        </div>
 
         <form
           onSubmit={(e) => {
@@ -275,15 +276,15 @@ function PatientChat() {
                 send();
               }
             }}
-            placeholder="Describe symptoms or ask a question…"
+            placeholder={lang ? INPUT_PLACEHOLDER[lang] : "Please choose a language above…"}
             rows={2}
             style={{ minHeight: 56, maxHeight: 160 }}
-            className="min-w-0 flex-1 resize-none overflow-y-auto whitespace-pre-wrap break-words bg-transparent px-3 py-3 text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
-            disabled={pending || !patient}
+            className="min-w-0 flex-1 resize-none overflow-y-auto whitespace-pre-wrap break-words bg-transparent px-3 py-3 text-sm leading-relaxed outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+            disabled={pending || !patient || !lang}
           />
           <button
             type="submit"
-            disabled={pending || !input.trim() || !patient}
+            disabled={pending || !input.trim() || !patient || !lang}
             className="flex h-10 w-10 shrink-0 items-center justify-center self-end rounded-xl bg-medical-blue text-primary-foreground transition-opacity disabled:opacity-40"
             aria-label="Send"
           >
@@ -291,7 +292,7 @@ function PatientChat() {
           </button>
         </form>
 
-        <GuidancePanel onPickTemplate={(t) => setInput(t)} />
+        {lang && <GuidancePanel lang={lang} onPickTemplate={(t) => setInput(t)} />}
       </main>
 
       {hydrated && !patient && (
