@@ -37,8 +37,33 @@ type ChatMessage = {
 
 type PatientInfo = { name: string; phone: string };
 
-const INTRO =
-  "I help with 3 things: ① Medication questions ② Appointment prep ③ General health info. What brings you here today?";
+type Lang = "en" | "zh" | "ms";
+
+const WELCOME = `Welcome to ClareCare 👋
+
+I can help with:
+• General health information
+• Medication-related questions
+• Appointment preparation
+• Basic symptom guidance
+
+I am not a doctor and I cannot provide a diagnosis or prescription.
+
+If this is an emergency, please call 999 or seek urgent medical care.`;
+
+const LANG_PROMPT = "Before we continue, please choose your preferred language.";
+
+const LANG_THANKS: Record<Lang, string> = {
+  en: "Thanks. Please describe your symptom or ask your health question.",
+  zh: "谢谢。请描述你的症状，或输入你想询问的健康问题。",
+  ms: "Terima kasih. Sila terangkan simptom anda atau tanya soalan kesihatan anda.",
+};
+
+const INPUT_PLACEHOLDER: Record<Lang, string> = {
+  en: "Describe symptoms or ask a question…",
+  zh: "描述你的症状或提问…",
+  ms: "Terangkan simptom atau tanya soalan…",
+};
 
 const STORAGE_KEY = "clarecare_patient";
 
