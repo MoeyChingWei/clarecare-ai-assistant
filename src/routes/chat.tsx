@@ -611,6 +611,17 @@ function PatientChat() {
           }}
         />
       )}
+
+      {patient && (
+        <DoctorPickerModal
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          patientName={patient.name}
+          patientPhone={patient.phone}
+          ensureCaseId={ensureCaseId}
+          onAssigned={handleAssigned}
+        />
+      )}
     </div>
   );
 }
