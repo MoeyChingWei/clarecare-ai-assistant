@@ -54,10 +54,11 @@ If this is an emergency, please call 999 or seek urgent medical care.`;
 const LANG_PROMPT = "Before we continue, please choose your preferred language.";
 
 const LANG_THANKS: Record<Lang, string> = {
-  en: "Thanks. Please describe your symptom or ask your health question.",
-  zh: "谢谢。请描述你的症状，或输入你想询问的健康问题。",
-  ms: "Terima kasih. Sila terangkan simptom anda atau tanya soalan kesihatan anda.",
+  en: "Thanks. You can now describe your symptom, ask a general health question, or choose one of the quick options below.",
+  zh: "谢谢。你现在可以描述你的症状、输入健康问题，或选择下面的快速选项。",
+  ms: "Terima kasih. Anda boleh menerangkan simptom, bertanya soalan kesihatan, atau memilih pilihan pantas di bawah.",
 };
+
 
 const INPUT_PLACEHOLDER: Record<Lang, string> = {
   en: "Describe symptoms or ask a question…",
