@@ -181,8 +181,18 @@ function PatientChat() {
 
   useEffect(() => {
     setPatient(loadPatient());
+    setAssignment(loadAssignment());
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (assignment) {
+      localStorage.setItem(ASSIGNMENT_KEY, JSON.stringify(assignment));
+    } else {
+      localStorage.removeItem(ASSIGNMENT_KEY);
+    }
+  }, [assignment]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
