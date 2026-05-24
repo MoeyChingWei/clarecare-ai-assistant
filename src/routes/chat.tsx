@@ -114,8 +114,14 @@ function PatientChat() {
     "idle" | "pending" | "sent" | "resolved"
   >("idle");
   const [showInputTip, setShowInputTip] = useState(false);
+  const [activeFlow, setActiveFlow] = useState<{
+    key: FlowKey;
+    step: number;
+    awaitingFreeText?: boolean;
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
 
   useEffect(() => {
     if (!patient || !lang) return;
