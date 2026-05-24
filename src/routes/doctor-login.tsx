@@ -39,6 +39,12 @@ function DoctorLoginPage() {
         return;
       }
 
+      // Mark doctor online for patient-side availability
+      await supabase
+        .from("doctor_accounts")
+        .update({ is_online: true })
+        .eq("id", data.id);
+
       localStorage.setItem(
         DOCTOR_SESSION_KEY,
         JSON.stringify({
