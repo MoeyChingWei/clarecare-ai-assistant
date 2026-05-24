@@ -12,7 +12,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import { AppHeader } from "@/components/AppHeader";
+
 import { supabase } from "@/integrations/supabase/client";
 import { runTestCase } from "@/lib/triage.functions";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
