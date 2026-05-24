@@ -230,7 +230,13 @@ function ClinicianDashboard() {
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((c) => (
-              <CaseCard key={c.id} c={c} onResolve={resolve} />
+              <CaseCard
+                key={c.id}
+                c={c}
+                onResolve={resolve}
+                onConfirmRouting={confirmRouting}
+              />
+
             ))}
           </div>
         )}
@@ -242,10 +248,13 @@ function ClinicianDashboard() {
 function CaseCard({
   c,
   onResolve,
+  onConfirmRouting,
 }: {
   c: CaseRow;
   onResolve: (id: string) => void;
+  onConfirmRouting: (id: string, routing: Routing) => void;
 }) {
+  const [routing, setRouting] = useState<Routing>(c.routed_to ?? "clinician");
   return (
     <article className="flex flex-col rounded-2xl border border-border/70 bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
