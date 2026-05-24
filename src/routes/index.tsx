@@ -294,10 +294,7 @@ function QuickButton({
     </button>
   );
 }
-      </main>
-    </div>
-  );
-}
+
 
 function MessageRow({
   message,
