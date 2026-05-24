@@ -155,6 +155,20 @@ function ClinicianDashboard() {
     }
   };
 
+  const confirmRouting = async (id: string, routing: Routing) => {
+    qc.setQueryData<CaseRow[]>(["escalated_cases"], (prev) =>
+      prev?.map((c) => (c.id === id ? { ...c, routed_to: routing } : c)),
+    );
+    const { error } = await supabase
+      .from("escalated_cases")
+      .update({ routed_to: routing })
+      .eq("id", id);
+    if (error) {
+      console.error(error);
+      qc.invalidateQueries({ queryKey: ["escalated_cases"] });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
