@@ -20,6 +20,8 @@ export type Database = {
           created_at: string
           escalation_reason: string
           id: string
+          patient_name: string | null
+          patient_phone: string | null
           patient_query: string
           resolved_at: string | null
           status: string
@@ -31,6 +33,8 @@ export type Database = {
           created_at?: string
           escalation_reason: string
           id?: string
+          patient_name?: string | null
+          patient_phone?: string | null
           patient_query: string
           resolved_at?: string | null
           status?: string
@@ -42,6 +46,8 @@ export type Database = {
           created_at?: string
           escalation_reason?: string
           id?: string
+          patient_name?: string | null
+          patient_phone?: string | null
           patient_query?: string
           resolved_at?: string | null
           status?: string

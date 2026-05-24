@@ -1,41 +1,62 @@
-## Patient Chat UI Updates
+## Landing page + intake form
 
-Five focused UI/UX changes to `src/routes/index.tsx` and the triage server function. No schema changes.
+Add a public landing page, move the chat to its own route, and gate it with a one-time name/phone intake form whose values get attached to every escalated case.
 
-### 1. Opening message
-Replace the assistant's first message with:
-> "I help with 3 things: ① Medication questions ② Appointment prep ③ General health info. What brings you here today?"
+### 1. New landing page at `/`
 
-### 2. Persistent disclaimer bar
-Replace the current soft disclaimer card with a slim bar pinned to the top of the page (above `AppHeader` or directly under it, full-width, `sticky top-0 z-40`):
-> "Guidance only • Not a diagnosis • Emergency? Call 999"
+Replace `src/routes/index.tsx` (currently the chat) with a marketing landing page:
 
-Style: tiny text, muted background (`bg-muted/60`), no close button, always visible.
+- **Header**: just the ClareCare logo + wordmark, top-left. No nav links.
+- **Hero**: centered logo (larger), tagline "Answers when you need them. A clinician when it matters." Soft blue/white gradient background.
+- **3 info cards** (responsive grid → stacks on mobile):
+  - 💊 Medication Tips — "Take meds at the same time each day. Use a pill organiser or phone reminder…"
+  - 🩺 When to See a Doctor — "Don't ignore chest pain, sudden weakness, severe headaches, or symptoms that get worse fast…"
+  - 📅 Appointment Prep — "Write down your top 3 questions, your current meds, and how long symptoms have lasted…"
+  - Each: headline, 2–3 lines, muted "Learn more →" (non-functional).
+- **Ad banner**: dashed border, muted bg, "Partner health content goes here".
+- **Floating chat bubble** (fixed bottom-right): round ClareCare-blue button, chat icon with pulsing green dot, subtle bounce-in animation on mount, navigates to `/chat` on click.
+- Persistent disclaimer bar ("Guidance only • Not a diagnosis • Emergency? Call 999") stays at the very top.
 
-### 3. Status badge under every AI response
-After each assistant bubble, render a small inline pill:
-- Safe → green: `✓ Handled by ClareCare`
-- Escalated → amber: `🔔 Flagging for clinician`
+### 2. Move chat to `/chat`
 
-This replaces the current "Flagged for clinician follow-up" inline notice inside the bubble — moves it out, makes it a consistent status indicator on every AI message.
+- Create `src/routes/chat.tsx` — copy the existing patient chat from `index.tsx` verbatim (disclaimer bar, AppHeader, messages, input, GuidancePanel).
+- Strip the patient-facing AppHeader of the **Clinician** and **Admin** tabs so there is no visible link from `/` or `/chat` to the clinician dashboard. The header on patient pages shows only the logo (clicking it returns to `/`). `/clinician` and `/admin` remain reachable by direct URL only.
 
-### 4. Escalation reason in the reply
-Update the system prompt in `src/lib/triage.functions.ts` so when the model escalates, the `reply` field follows the pattern:
-> "I'm flagging this because you mentioned [trigger]. A clinician will review within 2 hours. [optional empathy / 999 advice if life-threatening]"
+### 3. Intake form overlay on `/chat`
 
-The `[X]` is filled by the model from the actual symptom/keyword the patient mentioned. Keep the existing tool-use structure — only the prompt instruction for the `reply` field changes.
+A modal overlay shown on first visit:
 
-### 5. "Request human review" button
-Below every assistant message (both safe and escalated), render a ghost-style link-button:
-> "Prefer to speak to someone? Request review"
+- Two inputs: **Full Name**, **Phone Number** (both required, simple validation: name ≥ 2 chars, phone ≥ 7 chars).
+- "Start Chat" button.
+- On submit: save `{ name, phone }` to `localStorage` under `clarecare_patient`, dismiss overlay, reveal chat.
+- On mount: if both fields exist in `localStorage`, skip the overlay entirely.
+- The overlay blocks chat interaction (the chat UI renders behind it but is non-interactive until submission).
 
-Behavior: on click, insert an escalation row into `escalated_cases` (urgency `low`, reason `"Patient requested human review"`, summary built from recent conversation) and show a small confirmation: "Request sent — a clinician will follow up." Disable the button after click for that message.
+### 4. Attach name + phone to escalated cases
 
-This needs a new server function `requestHumanReview` in `src/lib/triage.functions.ts` that takes the recent conversation and inserts the row via `supabaseAdmin`.
+- Add two nullable columns to `escalated_cases`: `patient_name TEXT`, `patient_phone TEXT`.
+- Update the `triageMessage` and `requestHumanReview` server functions to accept `patientName` / `patientPhone` in the input schema and write them into the inserted row.
+- Patient chat page reads the patient info from `localStorage` and passes it to both server functions on every call.
 
-### Files touched
-- `src/routes/index.tsx` — opening message, disclaimer bar, status badge, review button, confirmation state
-- `src/lib/triage.functions.ts` — system prompt tweak + new `requestHumanReview` server fn
+### 5. Show on clinician dashboard
+
+Update `src/routes/clinician.tsx`:
+
+- Fetch `patient_name`, `patient_phone` alongside existing fields.
+- Show them on each case card — name as a small bold line at the top of the card, phone as a clickable `tel:` link below it. Hide gracefully if null (older cases).
+
+### 6. Files touched
+
+- `src/routes/index.tsx` — replaced with landing page
+- `src/routes/chat.tsx` — NEW, contains the existing chat (mostly copy/paste)
+- `src/components/AppHeader.tsx` — strip Clinician/Admin nav tabs (logo-only on patient pages)
+- `src/lib/triage.functions.ts` — accept and persist `patientName`/`patientPhone`
+- `src/routes/clinician.tsx` — render name + phone on cards
+- DB migration: `ALTER TABLE escalated_cases ADD COLUMN patient_name TEXT, ADD COLUMN patient_phone TEXT;`
 
 ### Out of scope
-No DB migration (existing schema covers it). No clinician dashboard changes. No auth.
+
+- No "Learn more" detail pages (links are placeholders).
+- No real ad integration.
+- No auth or password — name + phone are self-reported, MVP only.
+- Clinician dashboard layout untouched apart from the new name/phone display.
