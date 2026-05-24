@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -6,10 +6,12 @@ import {
   CheckCircle2,
   Clock,
   Inbox,
+  LogOut,
   Stethoscope,
 } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
+import { DOCTOR_SESSION_KEY } from "./doctor-login";
 
 export const Route = createFileRoute("/clinician")({
   head: () => ({
