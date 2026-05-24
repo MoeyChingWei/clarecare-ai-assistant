@@ -63,7 +63,31 @@ async function fetchCases(): Promise<CaseRow[]> {
 
 function ClinicianDashboard() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<Status>("open");
+  const [doctor, setDoctor] = useState<{ full_name: string } | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem(DOCTOR_SESSION_KEY);
+    if (!raw) {
+      navigate({ to: "/doctor-login" });
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed?.full_name) throw new Error("invalid");
+      setDoctor({ full_name: parsed.full_name });
+    } catch {
+      localStorage.removeItem(DOCTOR_SESSION_KEY);
+      navigate({ to: "/doctor-login" });
+    }
+  }, [navigate]);
+
+  const signOut = () => {
+    localStorage.removeItem(DOCTOR_SESSION_KEY);
+    navigate({ to: "/doctor-login" });
+  };
 
   const { data: cases = [], isLoading } = useQuery({
     queryKey: ["escalated_cases"],
