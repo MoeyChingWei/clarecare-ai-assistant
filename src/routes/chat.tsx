@@ -14,6 +14,8 @@ import {
   type FlowKey,
   type Lang as FlowLang,
 } from "@/lib/chat-flows";
+import { DoctorPickerModal } from "@/components/DoctorPickerModal";
+import { LiveChatPanel } from "@/components/LiveChatPanel";
 
 
 export const Route = createFileRoute("/chat")({
@@ -79,6 +81,13 @@ const INPUT_PLACEHOLDER: Record<Lang, string> = {
 };
 
 const STORAGE_KEY = "clarecare_patient";
+const ASSIGNMENT_KEY = "clarecare_assignment";
+
+type Assignment = {
+  assignmentId: string;
+  doctorId: string;
+  doctorName: string;
+};
 
 function makeId() {
   return Math.random().toString(36).slice(2, 10);
@@ -91,6 +100,19 @@ function loadPatient(): PatientInfo | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PatientInfo;
     if (parsed?.name && parsed?.phone) return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function loadAssignment(): Assignment | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(ASSIGNMENT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Assignment;
+    if (parsed?.assignmentId && parsed?.doctorName) return parsed;
     return null;
   } catch {
     return null;
@@ -119,6 +141,9 @@ function PatientChat() {
     step: number;
     awaitingFreeText?: boolean;
   } | null>(null);
+  const [caseId, setCaseId] = useState<string | null>(null);
+  const [assignment, setAssignment] = useState<Assignment | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -156,8 +181,18 @@ function PatientChat() {
 
   useEffect(() => {
     setPatient(loadPatient());
+    setAssignment(loadAssignment());
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (assignment) {
+      localStorage.setItem(ASSIGNMENT_KEY, JSON.stringify(assignment));
+    } else {
+      localStorage.removeItem(ASSIGNMENT_KEY);
+    }
+  }, [assignment]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -177,6 +212,7 @@ function PatientChat() {
           patientPhone: patient.phone,
         },
       });
+      if (result.caseId) setCaseId(result.caseId);
       setMessages((m) => [
         ...m,
         {
@@ -204,13 +240,14 @@ function PatientChat() {
     if (!patient) return;
     setPending(true);
     try {
-      await review({
+      const result = await review({
         data: {
           messages: history.map((m) => ({ role: m.role, content: m.content })),
           patientName: patient.name,
           patientPhone: patient.phone,
         },
       });
+      if (result?.caseId) setCaseId(result.caseId);
       setMessages((m) => [
         ...m,
         {
@@ -352,24 +389,46 @@ function PatientChat() {
   };
 
 
-  const handleReviewRequest = async () => {
-    if (!patient) return;
-    setReviewState("pending");
+  const ensureCaseId = async (): Promise<string | null> => {
+    if (caseId) return caseId;
+    if (!patient) return null;
     try {
-      await review({
+      const result = await review({
         data: {
           messages: messages.map((m) => ({ role: m.role, content: m.content })),
           patientName: patient.name,
           patientPhone: patient.phone,
         },
       });
-      setReviewState("sent");
+      const newId = result?.caseId ?? null;
+      if (newId) setCaseId(newId);
+      return newId;
     } catch (e) {
       console.error(e);
-      setReviewState("idle");
-      setError("Couldn't submit review request. Please try again.");
+      return null;
     }
   };
+
+  const handleReviewRequest = () => {
+    if (!patient) return;
+    setPickerOpen(true);
+  };
+
+  const handleAssigned = (a: Assignment) => {
+    setAssignment(a);
+    setReviewState("sent");
+    setMessages((m) => [
+      ...m,
+      {
+        id: makeId(),
+        role: "assistant",
+        content: `You've been connected to Dr. ${a.doctorName}. They can see your conversation and will respond shortly.`,
+        escalated: true,
+        reviewState: "idle",
+      },
+    ]);
+  };
+
 
   const hasUserMessage = messages.some((m) => m.role === "user" && m.content !== "English" && m.content !== "中文" && m.content !== "Bahasa Melayu");
   const hasAssistantReply = (() => {
@@ -457,7 +516,7 @@ function PatientChat() {
             />
           )}
 
-          {showReviewCard && lang && (
+          {showReviewCard && lang && !assignment && (
             <ReviewCard
               lang={lang}
               state={reviewState}
@@ -465,7 +524,25 @@ function PatientChat() {
               onResolve={() => setReviewState("resolved")}
             />
           )}
+
+          {assignment && patient && (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                Now connected to Dr. {assignment.doctorName}
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <LiveChatPanel
+                assignmentId={assignment.assignmentId}
+                selfRole="patient"
+                doctorName={assignment.doctorName}
+                variant="patient"
+                heightClass="max-h-72"
+              />
+            </div>
+          )}
         </div>
+
 
 
         <div className="relative mt-3">
@@ -532,6 +609,17 @@ function PatientChat() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(info));
             setPatient(info);
           }}
+        />
+      )}
+
+      {patient && (
+        <DoctorPickerModal
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          patientName={patient.name}
+          patientPhone={patient.phone}
+          ensureCaseId={ensureCaseId}
+          onAssigned={handleAssigned}
         />
       )}
     </div>

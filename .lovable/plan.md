@@ -1,45 +1,77 @@
-# Patient Chat — Quick Keyword Templates
+## Doctor Selection + Live Chat Plan
 
-Goal: after the user picks English / 中文 / Bahasa Melayu, show the new guidance sentence and a row of 8 quick-keyword chips that insert a fillable template into the existing auto-resizing textarea (no auto-send).
+### 1. Database Migration
 
-All edits are scoped to `src/routes/chat.tsx`. No other files, no schema changes.
+**Update `doctor_accounts`:**
+- Add `is_online` (boolean, default false)
+- Add `active_patients` (int, default 0)
+- Add `speciality` (text, nullable)
 
-## 1. Update language thank-you message
+**New `doctor_patient_assignments`:**
+- `id`, `patient_name`, `patient_phone`, `doctor_id` (FK doctor_accounts), `escalated_case_id` (FK escalated_cases), `status` ('active'|'resolved'), `created_at`
 
-Replace the three strings in `LANG_THANKS` (line ~56) with the new copy:
-- en: "Thanks. You can now describe your symptom, ask a general health question, or choose one of the quick options below."
-- zh: "谢谢。你现在可以描述你的症状、输入健康问题，或选择下面的快速选项。"
-- ms: "Terima kasih. Anda boleh menerangkan simptom, bertanya soalan kesihatan, atau memilih pilihan pantas di bawah."
+**New `live_chat_messages`:**
+- `id`, `assignment_id` (FK assignments), `sender` ('patient'|'doctor'), `message`, `created_at`
 
-## 2. Replace the template dataset
+RLS: public read/insert/update for hackathon parity with existing tables. Enable Supabase realtime on `live_chat_messages` and `doctor_patient_assignments`.
 
-Remove the current 4-key `TEMPLATES` map and add a localized `KEYWORD_TEMPLATES: Record<Lang, { key: string; label: string; template: string }[]>` containing the 8 entries per language exactly as specified in the request:
+Seed `speciality` for the two demo doctors (e.g., "General Practitioner", "Pharmacist").
 
-- en: Fever, Headache, Cough, Stomach pain, Medication question, Side effect, Appointment preparation, Request clinician review
-- zh: 发烧, 头痛, 咳嗽, 肚子痛, 药物问题, 副作用, 预约准备, 请求医生复查
-- ms: Demam, Sakit kepala, Batuk, Sakit perut, Soalan ubat, Kesan sampingan, Persediaan janji temu, Minta semakan doktor
+### 2. Patient Side (`src/routes/chat.tsx`)
 
-Each entry's `template` is the multi-line readable template from the brief (preserved line breaks via `\n`).
+**Doctor selection modal** (new component `DoctorPickerModal`):
+- Triggered when user clicks "Request clinician review" in the existing review/Need-More-Help card.
+- Fetches `doctor_accounts` where `is_online = true`.
+- Shows "Available Now" cards: name, speciality, animated green pulse dot, "Select" button.
+- Shows "Assign to Any Available Doctor" fallback button.
+- On select/auto-assign:
+  - Ensure escalated case exists (reuse `requestHumanReview` flow if no case yet, or use the latest case for this session).
+  - Insert `doctor_patient_assignments` row, increment doctor's `active_patients`.
+  - Store `assignmentId` + doctor name in chat state (and `localStorage` so it survives refresh).
+  - Append confirmation system message: "You've been connected to Dr. [name]…"
 
-## 3. Render quick-chip row inside `GuidancePanel`
+**Live chat panel** (below existing AI thread, only shown when assignment active):
+- Divider: "— Now connected to Dr. [name] —"
+- Warmer background (`bg-medical-blue-soft/40` or new soft tone).
+- Message list from `live_chat_messages` filtered by `assignment_id`.
+- Doctor bubbles: blue left bubble with "Dr. [name]" label. Patient bubbles: right-aligned (match existing style).
+- Composer with Send button → inserts row with `sender='patient'`.
+- Realtime subscription on `live_chat_messages` filtered by `assignment_id`.
 
-`GuidancePanel` already mounts only when `lang` is set (line ~351), so it's the natural home for the chips. Changes:
+### 3. Clinician Dashboard (`src/routes/clinician.tsx`)
 
-- Render a new chip strip ABOVE the existing collapsible "What should I include?" toggle, always visible after language selection.
-- Layout: `flex flex-wrap gap-2` so chips wrap cleanly on phones.
-- Chip style: small rounded-full pill — `rounded-full border border-medical-blue/30 bg-medical-blue-soft px-3 py-1.5 text-xs font-medium text-foreground hover:bg-medical-blue/15`. Calm, medical, on-brand.
-- On click: call `onPickTemplate(entry.template)` which already calls `setInput(...)` in the parent. No auto-send. Existing textarea auto-resize logic handles the multi-line growth.
-- Remove the old 2-column `QuickButton` grid + `templatesTitle` block from inside the collapsible panel (replaced by the new chip row). Keep the "What should I include?" guidance bullets and emergency note as-is.
-- Drop the now-unused `templatesTitle` and `buttons` keys from `GUIDANCE_COPY`.
-- Drop the unused `QuickButton` component.
+- On login, set `is_online = true` for that doctor; on signOut, set `false`. Also flip on `beforeunload` (best-effort).
+- Replace current "all escalated cases" view with **assigned-patients view**:
+  - Query `doctor_patient_assignments` where `doctor_id = currentDoctor.id` and `status = 'active'`, joined with `escalated_cases`.
+  - Split layout (desktop): left = patient list, right = active chat panel. Mobile: stack with back button.
+  - Right panel shows: patient name/phone, AI case summary, scrollable read-only AI history (from escalated case `patient_query` + `case_summary`; we don't currently store full transcript — see Open Question), and live chat thread.
+  - Composer inserts `live_chat_messages` with `sender='doctor'`.
+  - "Mark Resolved" → sets assignment.status='resolved', also resolves linked case, decrements `active_patients`.
+- Realtime subscription for assignments + messages scoped to this doctor.
 
-## 4. UI / UX details
+### 4. Files Touched
 
-- Chips appear immediately after the assistant's "Thanks…" message — same vertical position the GuidancePanel already occupies, just above the existing collapsible.
-- Send button and emergency banner untouched.
-- Mobile: chips wrap to multiple rows naturally; no horizontal scroll.
-- Clicking a chip only fills the textarea — user can edit before pressing send (existing Enter-to-send still works).
+- `supabase/migrations/<new>.sql` (schema + realtime publication + speciality seed)
+- `src/routes/chat.tsx` (modal, live chat panel, assignment state)
+- `src/components/DoctorPickerModal.tsx` (new)
+- `src/components/LiveChatPanel.tsx` (new, shared between patient & clinician)
+- `src/routes/clinician.tsx` (rewrite to assigned-view + split layout, online toggle)
+- `src/routes/doctor-login.tsx` (set is_online=true on successful login)
 
-## Out of scope
+### 5. Design Tokens
 
-- Welcome message, language selection flow, Supabase escalation, Claude integration, dashboard, end-of-conversation review card — all unchanged.
+- Reuse `medical-blue`, `medical-blue-soft`, `medical-green`. Add a subtle warm tone class for live chat background (`bg-amber-50/40` or a new `--clarecare-live-bg` token in `styles.css`).
+- Green pulse: `animate-pulse` on a `bg-medical-green` dot, with a ping ring.
+
+### Open Questions
+
+1. **AI transcript visibility for the doctor:** the dashboard spec asks for "Full AI chat history (read only, scrollable)", but today only `case_summary` + `patient_query` are persisted in `escalated_cases`. Three options:
+   - (a) Add a `transcript` jsonb column on `escalated_cases` and start saving the full thread on escalation. (recommended)
+   - (b) Show only the existing summary + last user message.
+   - (c) Save transcript into a new `case_messages` table.
+
+2. **When to create the escalated case** if the patient picks a doctor before any AI escalation has fired (e.g., they tap the review CTA proactively)? Current `requestHumanReview` only runs on AI escalation. Suggest: also call it implicitly when the user opens the doctor picker without an existing case.
+
+3. **Auto-assign logic**: pick the online doctor with the lowest `active_patients`? If none online, queue the assignment with `doctor_id = null` and `status='waiting'`? Confirm desired behavior.
+
+Please confirm answers to the 3 open questions (especially #1) and I'll implement.

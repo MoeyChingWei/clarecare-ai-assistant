@@ -16,27 +16,81 @@ export type Database = {
     Tables: {
       doctor_accounts: {
         Row: {
+          active_patients: number
           created_at: string
           full_name: string
           id: string
+          is_online: boolean
           password_hash: string
+          speciality: string | null
           username: string
         }
         Insert: {
+          active_patients?: number
           created_at?: string
           full_name: string
           id?: string
+          is_online?: boolean
           password_hash: string
+          speciality?: string | null
           username: string
         }
         Update: {
+          active_patients?: number
           created_at?: string
           full_name?: string
           id?: string
+          is_online?: boolean
           password_hash?: string
+          speciality?: string | null
           username?: string
         }
         Relationships: []
+      }
+      doctor_patient_assignments: {
+        Row: {
+          created_at: string
+          doctor_id: string | null
+          escalated_case_id: string | null
+          id: string
+          patient_name: string | null
+          patient_phone: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id?: string | null
+          escalated_case_id?: string | null
+          id?: string
+          patient_name?: string | null
+          patient_phone?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string | null
+          escalated_case_id?: string | null
+          id?: string
+          patient_name?: string | null
+          patient_phone?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_patient_assignments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctor_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_patient_assignments_escalated_case_id_fkey"
+            columns: ["escalated_case_id"]
+            isOneToOne: false
+            referencedRelation: "escalated_cases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       escalated_cases: {
         Row: {
@@ -112,6 +166,38 @@ export type Database = {
           source?: string
         }
         Relationships: []
+      }
+      live_chat_messages: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          id: string
+          message: string
+          sender: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          id?: string
+          message: string
+          sender: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          sender?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_chat_messages_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "doctor_patient_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       red_flag_rules: {
         Row: {
