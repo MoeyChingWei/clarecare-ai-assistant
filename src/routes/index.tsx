@@ -22,14 +22,32 @@ export const Route = createFileRoute("/")({
   component: LandingPage,
 });
 
+const TOUR_KEY = "clarecare_tour_landing_dismissed";
+
 function LandingPage() {
   const navigate = useNavigate();
   const [bounced, setBounced] = useState(true);
+  const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setBounced(false), 2200);
+    if (typeof window !== "undefined" && !localStorage.getItem(TOUR_KEY)) {
+      const tt = setTimeout(() => setShowTour(true), 600);
+      return () => {
+        clearTimeout(t);
+        clearTimeout(tt);
+      };
+    }
     return () => clearTimeout(t);
   }, []);
+
+  const dismissTour = () => {
+    setShowTour(false);
+    try {
+      localStorage.setItem(TOUR_KEY, "1");
+    } catch {}
+  };
+
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-medical-blue-soft/50 via-background to-background">
