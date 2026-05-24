@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as DoctorLoginRouteImport } from './routes/doctor-login'
 import { Route as ClinicianRouteImport } from './routes/clinician'
 import { Route as ChatRouteImport } from './routes/chat'
@@ -19,6 +20,11 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminAiSafetyRouteImport } from './routes/admin.ai-safety'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DoctorLoginRoute = DoctorLoginRouteImport.update({
   id: '/doctor-login',
   path: '/doctor-login',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/chat': typeof ChatRoute
   '/clinician': typeof ClinicianRoute
   '/doctor-login': typeof DoctorLoginRoute
+  '/login': typeof LoginRoute
   '/admin/ai-safety': typeof AdminAiSafetyRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/clinician': typeof ClinicianRoute
   '/doctor-login': typeof DoctorLoginRoute
+  '/login': typeof LoginRoute
   '/admin/ai-safety': typeof AdminAiSafetyRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin': typeof AdminIndexRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/chat': typeof ChatRoute
   '/clinician': typeof ClinicianRoute
   '/doctor-login': typeof DoctorLoginRoute
+  '/login': typeof LoginRoute
   '/admin/ai-safety': typeof AdminAiSafetyRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clinician'
     | '/doctor-login'
+    | '/login'
     | '/admin/ai-safety'
     | '/admin/users'
     | '/admin/'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clinician'
     | '/doctor-login'
+    | '/login'
     | '/admin/ai-safety'
     | '/admin/users'
     | '/admin'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clinician'
     | '/doctor-login'
+    | '/login'
     | '/admin/ai-safety'
     | '/admin/users'
     | '/admin/'
@@ -140,10 +152,18 @@ export interface RootRouteChildren {
   ChatRoute: typeof ChatRoute
   ClinicianRoute: typeof ClinicianRoute
   DoctorLoginRoute: typeof DoctorLoginRoute
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/doctor-login': {
       id: '/doctor-login'
       path: '/doctor-login'
@@ -231,6 +251,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChatRoute: ChatRoute,
   ClinicianRoute: ClinicianRoute,
   DoctorLoginRoute: DoctorLoginRoute,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

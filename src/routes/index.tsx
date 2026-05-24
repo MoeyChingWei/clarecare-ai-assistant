@@ -58,12 +58,12 @@ function LandingPage() {
         </p>
       </div>
 
-      {/* Doctor Access — subtle top-right */}
+      {/* Staff Portal — subtle top-right */}
       <button
-        onClick={() => navigate({ to: "/doctor-login" })}
+        onClick={() => navigate({ to: "/login" })}
         className="absolute right-3 top-8 z-20 rounded-full border border-medical-blue/40 bg-background/70 px-3 py-1 text-xs font-medium text-medical-blue backdrop-blur transition-colors hover:bg-medical-blue/10 sm:right-4 sm:top-9"
       >
-        Doctor Access
+        Staff Portal
       </button>
 
       <div className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
