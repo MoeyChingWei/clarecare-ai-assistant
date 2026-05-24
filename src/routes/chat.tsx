@@ -97,6 +97,9 @@ function PatientChat() {
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reviewState, setReviewState] = useState<
+    "idle" | "pending" | "sent" | "resolved"
+  >("idle");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
