@@ -80,6 +80,8 @@ export function DoctorPickerModal({
   }, [open]);
 
   const onlineDoctors = doctors.filter((d) => d.is_online);
+  const offlineDoctors = doctors.filter((d) => !d.is_online);
+
 
   const assignTo = async (doctor: DoctorRow) => {
     setBusyId(doctor.id);
