@@ -71,6 +71,15 @@ function PatientChat() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const next = Math.min(el.scrollHeight, 160);
+    el.style.height = `${Math.max(next, 56)}px`;
+  }, [input]);
 
   useEffect(() => {
     setPatient(loadPatient());
