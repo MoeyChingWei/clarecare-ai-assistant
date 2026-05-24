@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, HelpCircle, ChevronDown } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { triageMessage, requestHumanReview } from "@/lib/triage.functions";
 
