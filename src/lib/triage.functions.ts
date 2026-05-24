@@ -158,3 +158,38 @@ export const triageMessage = createServerFn({ method: "POST" })
       caseId,
     };
   });
+
+const ReviewInputSchema = z.object({
+  messages: z.array(MessageSchema).min(1).max(40),
+});
+
+export const requestHumanReview = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => ReviewInputSchema.parse(input))
+  .handler(async ({ data }) => {
+    const lastUser = [...data.messages].reverse().find((m) => m.role === "user");
+    const patientQuery = lastUser?.content ?? "(no message)";
+    const transcript = data.messages
+      .slice(-6)
+      .map((m) => `${m.role === "user" ? "Patient" : "ClareCare"}: ${m.content}`)
+      .join("\n");
+
+    const { data: inserted, error } = await supabaseAdmin
+      .from("escalated_cases")
+      .insert({
+        patient_query: patientQuery,
+        symptoms: [],
+        escalation_reason: "Patient requested human review",
+        urgency: "low",
+        case_summary: `Patient explicitly requested to speak with a clinician.\n\nRecent conversation:\n${transcript}`,
+        status: "open",
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error("Failed to insert review request:", error);
+      throw new Error("Could not submit review request");
+    }
+    return { caseId: inserted.id };
+  });
+
