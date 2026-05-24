@@ -147,12 +147,6 @@ function InfoCard({
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
         {body}
       </p>
-      <button
-        type="button"
-        className="mt-4 text-xs font-medium text-muted-foreground underline-offset-4 hover:text-medical-blue hover:underline"
-      >
-        Learn more →
-      </button>
     </article>
   );
 }
