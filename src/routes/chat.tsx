@@ -450,6 +450,13 @@ function PatientChat() {
             </div>
           )}
 
+          {activeFlow && lang && !activeFlow.awaitingFreeText && !pending && (
+            <FlowAnswers
+              options={FLOWS[lang][activeFlow.key].steps[activeFlow.step].options}
+              onPick={answerFlow}
+            />
+          )}
+
           {showReviewCard && lang && (
             <ReviewCard
               lang={lang}
@@ -459,6 +466,7 @@ function PatientChat() {
             />
           )}
         </div>
+
 
         <div className="relative mt-3">
           {showInputTip && (
