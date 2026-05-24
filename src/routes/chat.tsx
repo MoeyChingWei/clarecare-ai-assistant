@@ -424,12 +424,85 @@ const TEMPLATES: Record<string, string> = {
 };
 
 
+const GUIDANCE_COPY: Record<Lang, {
+  toggle: string;
+  intro: string;
+  items: string[];
+  emergency: string;
+  templatesTitle: string;
+  buttons: { general: string; symptom: string; medication: string; clinician: string };
+}> = {
+  en: {
+    toggle: "What should I include?",
+    intro: "To help ClareCare understand your situation better, please include:",
+    items: [
+      "Your main symptom or question",
+      "When it started",
+      "How serious it is: mild, moderate, severe, or 1–10",
+      "Any red flag symptoms such as chest pain, difficulty breathing, severe bleeding, confusion, fainting, or severe allergic reaction",
+      "Any medication you are taking or allergies you have",
+      "Whether you want general advice, pharmacist review, or clinician review",
+    ],
+    emergency: "If this is an emergency, call 999 or seek urgent medical care immediately.",
+    templatesTitle: "Quick start templates",
+    buttons: {
+      general: "General health question",
+      symptom: "Symptom check",
+      medication: "Medication question",
+      clinician: "Request clinician review",
+    },
+  },
+  zh: {
+    toggle: "我应该包含什么？",
+    intro: "为了让 ClareCare 更好地了解你的情况，请提供：",
+    items: [
+      "你的主要症状或问题",
+      "症状什么时候开始",
+      "严重程度：轻微、中等、严重，或 1–10 分",
+      "是否有胸痛、呼吸困难、严重出血、意识混乱、昏倒或严重过敏反应",
+      "你正在服用的药物或药物过敏",
+      "你需要一般建议、药剂师复查，还是医生复查",
+    ],
+    emergency: "如果这是紧急情况，请立刻拨打 999 或寻求紧急医疗帮助。",
+    templatesTitle: "快速开始模板",
+    buttons: {
+      general: "一般健康问题",
+      symptom: "症状检查",
+      medication: "药物问题",
+      clinician: "请求医生复查",
+    },
+  },
+  ms: {
+    toggle: "Apa yang patut saya sertakan?",
+    intro: "Untuk membantu ClareCare memahami keadaan anda dengan lebih baik, sila berikan:",
+    items: [
+      "Simptom utama atau soalan anda",
+      "Bila ia bermula",
+      "Tahap keterukan: ringan, sederhana, serius, atau 1–10",
+      "Sama ada anda mengalami sakit dada, susah bernafas, pendarahan teruk, keliru, pengsan, atau reaksi alahan serius",
+      "Ubat yang sedang diambil atau alahan ubat",
+      "Sama ada anda mahu nasihat umum, semakan ahli farmasi, atau semakan doktor",
+    ],
+    emergency: "Jika ini kecemasan, sila hubungi 999 atau dapatkan rawatan kecemasan segera.",
+    templatesTitle: "Templat permulaan pantas",
+    buttons: {
+      general: "Soalan kesihatan umum",
+      symptom: "Semakan simptom",
+      medication: "Soalan ubat",
+      clinician: "Minta semakan doktor",
+    },
+  },
+};
+
 function GuidancePanel({
+  lang,
   onPickTemplate,
 }: {
+  lang: Lang;
   onPickTemplate: (template: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const copy = GUIDANCE_COPY[lang];
 
   const pick = (key: keyof typeof TEMPLATES) => {
     onPickTemplate(TEMPLATES[key]);
@@ -446,7 +519,7 @@ function GuidancePanel({
       >
         <span className="flex items-center gap-2">
           <HelpCircle className="h-4 w-4 text-medical-blue" />
-          What should I include?
+          {copy.toggle}
         </span>
         <ChevronDown
           className={`h-4 w-4 text-muted-foreground transition-transform ${
@@ -457,44 +530,24 @@ function GuidancePanel({
 
       {open && (
         <div className="mt-2 rounded-2xl border border-medical-blue/20 bg-card p-4 text-sm shadow-sm">
-          <p className="text-muted-foreground">
-            To help ClareCare understand your situation better, please include:
-          </p>
-          <ol className="mt-2 list-decimal space-y-1 pl-5 text-foreground/90">
-            <li>Your main symptom or question</li>
-            <li>When it started</li>
-            <li>How serious it is: mild, moderate, severe, or 1–10</li>
-            <li>
-              Any red flag symptoms such as chest pain, difficulty breathing,
-              severe bleeding, confusion, fainting, or severe allergic reaction
-            </li>
-            <li>Any medication you are taking or allergies you have</li>
-            <li>
-              Whether you want general advice, pharmacist review, or clinician
-              review
-            </li>
-          </ol>
+          <p className="text-muted-foreground">{copy.intro}</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-foreground/90">
+            {copy.items.map((it, i) => (
+              <li key={i}>{it}</li>
+            ))}
+          </ul>
           <p className="mt-3 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-800">
-            If this is an emergency, call 999 or seek emergency care
-            immediately.
+            {copy.emergency}
           </p>
 
           <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Quick start templates
+            {copy.templatesTitle}
           </p>
           <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <QuickButton onClick={() => pick("general")}>
-              General health question
-            </QuickButton>
-            <QuickButton onClick={() => pick("symptom")}>
-              Symptom check
-            </QuickButton>
-            <QuickButton onClick={() => pick("medication")}>
-              Medication question
-            </QuickButton>
-            <QuickButton onClick={() => pick("clinician")}>
-              Request clinician review
-            </QuickButton>
+            <QuickButton onClick={() => pick("general")}>{copy.buttons.general}</QuickButton>
+            <QuickButton onClick={() => pick("symptom")}>{copy.buttons.symptom}</QuickButton>
+            <QuickButton onClick={() => pick("medication")}>{copy.buttons.medication}</QuickButton>
+            <QuickButton onClick={() => pick("clinician")}>{copy.buttons.clinician}</QuickButton>
           </div>
         </div>
       )}
