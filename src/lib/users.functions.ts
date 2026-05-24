@@ -8,6 +8,56 @@ import { logAudit } from "./audit.server";
 const RoleEnum = z.enum(["superadmin", "admin", "doctor", "patient"]);
 const StatusEnum = z.enum(["active", "inactive"]);
 
+/**
+ * Mirror an active doctor from user_accounts into doctor_accounts so they
+ * appear in the patient chat picker. Keyed by username.
+ */
+async function syncDoctorAccount(args: {
+  username: string;
+  fullName: string;
+  previousUsername?: string;
+}) {
+  const { username, fullName, previousUsername } = args;
+
+  // If username changed, rename existing row.
+  if (previousUsername && previousUsername !== username) {
+    const { data: oldRow } = await supabaseAdmin
+      .from("doctor_accounts")
+      .select("id")
+      .eq("username", previousUsername)
+      .maybeSingle();
+    if (oldRow) {
+      await supabaseAdmin
+        .from("doctor_accounts")
+        .update({ username, full_name: fullName })
+        .eq("id", oldRow.id);
+      return;
+    }
+  }
+
+  const { data: existing } = await supabaseAdmin
+    .from("doctor_accounts")
+    .select("id")
+    .eq("username", username)
+    .maybeSingle();
+
+  if (existing) {
+    await supabaseAdmin
+      .from("doctor_accounts")
+      .update({ full_name: fullName })
+      .eq("id", existing.id);
+  } else {
+    await supabaseAdmin.from("doctor_accounts").insert({
+      username,
+      full_name: fullName,
+      password_hash: "",
+      is_online: false,
+      active_patients: 0,
+    });
+  }
+}
+
+
 export const listUsers = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ token: z.string() }).parse(d))
   .handler(async ({ data }) => {
@@ -53,6 +103,9 @@ export const createUser = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    if (data.role === "doctor" && data.status === "active") {
+      await syncDoctorAccount({ username: data.username, fullName: data.fullName });
+    }
     await logAudit({
       actorUserId: caller.userId,
       actorRole: caller.role,
@@ -63,6 +116,7 @@ export const createUser = createServerFn({ method: "POST" })
     });
     return { ok: true, id: created.id };
   });
+
 
 export const updateUser = createServerFn({ method: "POST" })
   .inputValidator((d) =>
@@ -80,7 +134,7 @@ export const updateUser = createServerFn({ method: "POST" })
     const caller = requireRole(data.token, ["superadmin", "admin"]);
     const { data: target } = await supabaseAdmin
       .from("user_accounts")
-      .select("role")
+      .select("role, username")
       .eq("id", data.id)
       .maybeSingle();
     if (!target) throw new Error("User not found");
@@ -104,6 +158,21 @@ export const updateUser = createServerFn({ method: "POST" })
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    if (data.role === "doctor" && data.status === "active") {
+      await syncDoctorAccount({
+        username: data.username,
+        fullName: data.fullName,
+        previousUsername: target.username,
+      });
+    } else if (target.role === "doctor") {
+      // Role changed away from doctor or user deactivated → mark offline
+      await supabaseAdmin
+        .from("doctor_accounts")
+        .update({ is_online: false })
+        .eq("username", target.username);
+    }
+
     await logAudit({
       actorUserId: caller.userId,
       actorRole: caller.role,
@@ -113,6 +182,7 @@ export const updateUser = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
 
 export const deactivateUser = createServerFn({ method: "POST" })
   .inputValidator((d) =>
@@ -136,6 +206,24 @@ export const deactivateUser = createServerFn({ method: "POST" })
       .update({ status: data.active ? "active" : "inactive", updated_at: new Date().toISOString() })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    // Mirror to doctor_accounts when applicable.
+    const { data: refreshed } = await supabaseAdmin
+      .from("user_accounts")
+      .select("role, username, full_name")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (refreshed?.role === "doctor") {
+      if (data.active) {
+        await syncDoctorAccount({ username: refreshed.username, fullName: refreshed.full_name });
+      } else {
+        await supabaseAdmin
+          .from("doctor_accounts")
+          .update({ is_online: false })
+          .eq("username", refreshed.username);
+      }
+    }
+
     await logAudit({
       actorUserId: caller.userId,
       actorRole: caller.role,
@@ -145,6 +233,7 @@ export const deactivateUser = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
 
 export const resetUserPassword = createServerFn({ method: "POST" })
   .inputValidator((d) =>
