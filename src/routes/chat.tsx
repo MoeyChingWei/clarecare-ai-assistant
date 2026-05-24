@@ -161,11 +161,9 @@ function PatientChat() {
     }
   };
 
-  const handleReviewRequest = async (messageId: string) => {
+  const handleReviewRequest = async () => {
     if (!patient) return;
-    setMessages((m) =>
-      m.map((msg) => (msg.id === messageId ? { ...msg, reviewState: "pending" } : msg)),
-    );
+    setReviewState("pending");
     try {
       await review({
         data: {
@@ -174,17 +172,22 @@ function PatientChat() {
           patientPhone: patient.phone,
         },
       });
-      setMessages((m) =>
-        m.map((msg) => (msg.id === messageId ? { ...msg, reviewState: "sent" } : msg)),
-      );
+      setReviewState("sent");
     } catch (e) {
       console.error(e);
-      setMessages((m) =>
-        m.map((msg) => (msg.id === messageId ? { ...msg, reviewState: "idle" } : msg)),
-      );
+      setReviewState("idle");
       setError("Couldn't submit review request. Please try again.");
     }
   };
+
+  const hasUserMessage = messages.some((m) => m.role === "user" && m.content !== "English" && m.content !== "中文" && m.content !== "Bahasa Melayu");
+  const hasAssistantReply = (() => {
+    const lastUserIdx = [...messages].reverse().findIndex((m) => m.role === "user");
+    if (lastUserIdx === -1) return false;
+    const idx = messages.length - 1 - lastUserIdx;
+    return messages.slice(idx + 1).some((m) => m.role === "assistant");
+  })();
+  const showReviewCard = !!lang && hasUserMessage && hasAssistantReply && !pending;
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-medical-blue-soft/40 via-background to-background">
