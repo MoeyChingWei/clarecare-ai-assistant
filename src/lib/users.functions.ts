@@ -8,6 +8,56 @@ import { logAudit } from "./audit.server";
 const RoleEnum = z.enum(["superadmin", "admin", "doctor", "patient"]);
 const StatusEnum = z.enum(["active", "inactive"]);
 
+/**
+ * Mirror an active doctor from user_accounts into doctor_accounts so they
+ * appear in the patient chat picker. Keyed by username.
+ */
+async function syncDoctorAccount(args: {
+  username: string;
+  fullName: string;
+  previousUsername?: string;
+}) {
+  const { username, fullName, previousUsername } = args;
+
+  // If username changed, rename existing row.
+  if (previousUsername && previousUsername !== username) {
+    const { data: oldRow } = await supabaseAdmin
+      .from("doctor_accounts")
+      .select("id")
+      .eq("username", previousUsername)
+      .maybeSingle();
+    if (oldRow) {
+      await supabaseAdmin
+        .from("doctor_accounts")
+        .update({ username, full_name: fullName })
+        .eq("id", oldRow.id);
+      return;
+    }
+  }
+
+  const { data: existing } = await supabaseAdmin
+    .from("doctor_accounts")
+    .select("id")
+    .eq("username", username)
+    .maybeSingle();
+
+  if (existing) {
+    await supabaseAdmin
+      .from("doctor_accounts")
+      .update({ full_name: fullName })
+      .eq("id", existing.id);
+  } else {
+    await supabaseAdmin.from("doctor_accounts").insert({
+      username,
+      full_name: fullName,
+      password_hash: "",
+      is_online: false,
+      active_patients: 0,
+    });
+  }
+}
+
+
 export const listUsers = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ token: z.string() }).parse(d))
   .handler(async ({ data }) => {
