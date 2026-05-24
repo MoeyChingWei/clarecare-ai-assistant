@@ -329,13 +329,31 @@ function IntakeOverlay({
 
 const TEMPLATES: Record<string, string> = {
   general: "I would like to ask about ____.",
-  symptom:
-    "My main symptom is ____. It started ____. The severity is __/10. I also have / do not have chest pain, breathing difficulty, bleeding, confusion, or fainting. I am taking ____. I have allergies to ____.",
-  medication:
-    "I have a question about this medicine: ____. I want to know about ____. I am currently taking ____. I have allergies to ____.",
-  clinician:
-    "I would like a clinician to review my case. My concern is ____. It started ____. My symptoms are ____. The severity is ____. I am taking ____. My reason for review is ____.",
+  symptom: [
+    "My main symptom is ____.",
+    "It started ____.",
+    "The severity is __/10.",
+    "I have / do not have chest pain, breathing difficulty, bleeding, confusion, or fainting.",
+    "I am taking ____.",
+    "I have allergies to ____.",
+  ].join("\n"),
+  medication: [
+    "I have a question about this medicine: ____.",
+    "I want to know about ____.",
+    "I am currently taking ____.",
+    "I have allergies to ____.",
+  ].join("\n"),
+  clinician: [
+    "I would like a clinician to review my case.",
+    "My concern is ____.",
+    "It started ____.",
+    "My symptoms are ____.",
+    "The severity is ____.",
+    "I am taking ____.",
+    "My reason for review is ____.",
+  ].join("\n"),
 };
+
 
 function GuidancePanel({
   onPickTemplate,
