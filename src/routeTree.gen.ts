@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as DoctorLoginRouteImport } from './routes/doctor-login'
 import { Route as ClinicianRouteImport } from './routes/clinician'
 import { Route as ChatRouteImport } from './routes/chat'
+import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminAiSafetyRouteImport } from './routes/admin.ai-safety'
@@ -29,6 +30,11 @@ const ClinicianRoute = ClinicianRouteImport.update({
 const ChatRoute = ChatRouteImport.update({
   id: '/chat',
   path: '/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin-login',
+  path: '/admin-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -50,6 +56,7 @@ const AdminAiSafetyRoute = AdminAiSafetyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-login': typeof AdminLoginRoute
   '/chat': typeof ChatRoute
   '/clinician': typeof ClinicianRoute
   '/doctor-login': typeof DoctorLoginRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-login': typeof AdminLoginRoute
   '/chat': typeof ChatRoute
   '/clinician': typeof ClinicianRoute
   '/doctor-login': typeof DoctorLoginRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-login': typeof AdminLoginRoute
   '/chat': typeof ChatRoute
   '/clinician': typeof ClinicianRoute
   '/doctor-login': typeof DoctorLoginRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/admin-login'
     | '/chat'
     | '/clinician'
     | '/doctor-login'
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/admin-login'
     | '/chat'
     | '/clinician'
     | '/doctor-login'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/admin-login'
     | '/chat'
     | '/clinician'
     | '/doctor-login'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AdminLoginRoute: typeof AdminLoginRoute
   ChatRoute: typeof ChatRoute
   ClinicianRoute: typeof ClinicianRoute
   DoctorLoginRoute: typeof DoctorLoginRoute
@@ -128,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/chat'
       fullPath: '/chat'
       preLoaderRoute: typeof ChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-login': {
+      id: '/admin-login'
+      path: '/admin-login'
+      fullPath: '/admin-login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -167,6 +187,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  AdminLoginRoute: AdminLoginRoute,
   ChatRoute: ChatRoute,
   ClinicianRoute: ClinicianRoute,
   DoctorLoginRoute: DoctorLoginRoute,
