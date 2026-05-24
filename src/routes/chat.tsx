@@ -3,6 +3,18 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { Send, Sparkles, HelpCircle, ChevronDown, Stethoscope, X } from "lucide-react";
 import { triageMessage, requestHumanReview } from "@/lib/triage.functions";
+import {
+  FLOWS,
+  FLOW_ORDER,
+  RED_FLAG_MESSAGE,
+  REVIEW_REQUESTED_MESSAGE,
+  PHARMACIST_REQUESTED_MESSAGE,
+  FREETEXT_PROMPT,
+  FLOW_DONE_LABEL,
+  type FlowKey,
+  type Lang as FlowLang,
+} from "@/lib/chat-flows";
+
 
 export const Route = createFileRoute("/chat")({
   head: () => ({
