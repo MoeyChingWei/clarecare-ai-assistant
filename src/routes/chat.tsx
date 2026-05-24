@@ -184,7 +184,7 @@ function PatientChat() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-medical-blue-soft/40 via-background to-background">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-medical-blue-soft/40 via-background to-background">
       {/* Persistent disclaimer bar */}
       <div className="sticky top-0 z-40 w-full border-b border-border/60 bg-muted/70 backdrop-blur supports-[backdrop-filter]:bg-muted/60">
         <p className="mx-auto max-w-3xl px-4 py-1.5 text-center text-[11px] font-medium tracking-wide text-muted-foreground">
