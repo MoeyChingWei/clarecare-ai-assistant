@@ -90,8 +90,10 @@ function PatientChat() {
   const [patient, setPatient] = useState<PatientInfo | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: "intro", role: "assistant", content: INTRO, escalated: false, reviewState: "idle" },
+    { id: "welcome", role: "assistant", content: WELCOME, escalated: false, reviewState: "idle" },
+    { id: "lang-prompt", role: "assistant", content: LANG_PROMPT, escalated: false, reviewState: "idle" },
   ]);
+  const [lang, setLang] = useState<Lang | null>(null);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
