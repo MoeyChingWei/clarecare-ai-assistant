@@ -50,6 +50,99 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_base: {
+        Row: {
+          active: boolean
+          approved_answer: string
+          category: string
+          created_at: string
+          id: string
+          question: string
+          source: string
+        }
+        Insert: {
+          active?: boolean
+          approved_answer: string
+          category: string
+          created_at?: string
+          id?: string
+          question: string
+          source?: string
+        }
+        Update: {
+          active?: boolean
+          approved_answer?: string
+          category?: string
+          created_at?: string
+          id?: string
+          question?: string
+          source?: string
+        }
+        Relationships: []
+      }
+      red_flag_rules: {
+        Row: {
+          active: boolean
+          created_at: string
+          escalation_reason: string
+          id: string
+          keyword: string
+          urgency: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          escalation_reason: string
+          id?: string
+          keyword: string
+          urgency?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          escalation_reason?: string
+          id?: string
+          keyword?: string
+          urgency?: string
+        }
+        Relationships: []
+      }
+      test_cases: {
+        Row: {
+          created_at: string
+          expected_decision: string
+          expected_urgency: string
+          id: string
+          last_actual_decision: string | null
+          last_actual_urgency: string | null
+          last_result: string | null
+          last_run_at: string | null
+          patient_query: string
+        }
+        Insert: {
+          created_at?: string
+          expected_decision: string
+          expected_urgency: string
+          id?: string
+          last_actual_decision?: string | null
+          last_actual_urgency?: string | null
+          last_result?: string | null
+          last_run_at?: string | null
+          patient_query: string
+        }
+        Update: {
+          created_at?: string
+          expected_decision?: string
+          expected_urgency?: string
+          id?: string
+          last_actual_decision?: string | null
+          last_actual_urgency?: string | null
+          last_result?: string | null
+          last_run_at?: string | null
+          patient_query?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

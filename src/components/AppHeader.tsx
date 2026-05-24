@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Stethoscope, MessagesSquare, LayoutDashboard } from "lucide-react";
+import { Stethoscope, MessagesSquare, LayoutDashboard, ShieldCheck } from "lucide-react";
 
 export function AppHeader() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -7,6 +7,7 @@ export function AppHeader() {
   const tabs = [
     { to: "/", label: "Patient", icon: MessagesSquare },
     { to: "/clinician", label: "Clinician", icon: LayoutDashboard },
+    { to: "/admin", label: "Admin", icon: ShieldCheck },
   ] as const;
 
   return (
