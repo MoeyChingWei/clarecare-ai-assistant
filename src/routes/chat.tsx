@@ -572,13 +572,7 @@ function QuickButton({
   );
 }
 
-function MessageRow({
-  message,
-  onRequestReview,
-}: {
-  message: ChatMessage;
-  onRequestReview: () => void;
-}) {
+function MessageRow({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
 
   if (isUser) {
@@ -592,7 +586,6 @@ function MessageRow({
   }
 
   const escalated = !!message.escalated;
-  const reviewState = message.reviewState ?? "idle";
 
   return (
     <div className="flex flex-col items-start gap-1.5">
@@ -600,32 +593,18 @@ function MessageRow({
         <p className="whitespace-pre-wrap">{message.content}</p>
       </div>
 
-      <span
-        className={
-          escalated
-            ? "inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800"
-            : "inline-flex items-center gap-1 rounded-full border border-medical-green/30 bg-medical-green-soft px-2 py-0.5 text-[11px] font-medium text-foreground"
-        }
-      >
-        {escalated ? "🔔 Flagging for clinician" : "✓ Handled by ClareCare"}
-      </span>
-
-      {reviewState === "sent" ? (
-        <span className="text-[11px] italic text-muted-foreground">
-          Request sent — a clinician will follow up.
-        </span>
-      ) : (
-        <button
-          type="button"
-          onClick={onRequestReview}
-          disabled={reviewState === "pending"}
-          className="text-[11px] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+      {(escalated || message.urgency) && (
+        <span
+          className={
+            escalated
+              ? "inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800"
+              : "inline-flex items-center gap-1 rounded-full border border-medical-green/30 bg-medical-green-soft px-2 py-0.5 text-[11px] font-medium text-foreground"
+          }
         >
-          {reviewState === "pending"
-            ? "Sending request…"
-            : "Prefer to speak to someone? Request review"}
-        </button>
+          {escalated ? "🔔 Flagging for clinician" : "✓ Handled by ClareCare"}
+        </span>
       )}
     </div>
   );
 }
+
