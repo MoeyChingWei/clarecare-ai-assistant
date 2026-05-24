@@ -165,6 +165,9 @@ export const triageMessage = createServerFn({ method: "POST" })
           status: "open",
           patient_name: patientName,
           patient_phone: patientPhone,
+          routed_to: recommendRouting(
+            `${patientQuery} ${matchedRule.keyword}`,
+          ),
         })
         .select("id")
         .single();
@@ -214,6 +217,9 @@ export const triageMessage = createServerFn({ method: "POST" })
           status: "open",
           patient_name: patientName,
           patient_phone: patientPhone,
+          routed_to: recommendRouting(
+            `${patientQuery} ${(result.symptoms_mentioned ?? []).join(" ")} ${result.escalation_reason ?? ""}`,
+          ),
         })
         .select("id")
         .single();
@@ -258,6 +264,7 @@ export const requestHumanReview = createServerFn({ method: "POST" })
         status: "open",
         patient_name: data.patientName ?? null,
         patient_phone: data.patientPhone ?? null,
+        routed_to: recommendRouting(patientQuery),
       })
       .select("id")
       .single();
