@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, HelpCircle, ChevronDown } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { triageMessage, requestHumanReview } from "@/lib/triage.functions";
 
@@ -182,10 +182,119 @@ function PatientChat() {
             <Send className="h-4 w-4" />
           </button>
         </form>
+
+        <GuidancePanel onPickTemplate={(t) => setInput(t)} />
       </main>
     </div>
   );
 }
+
+const TEMPLATES: Record<string, string> = {
+  general: "I would like to ask about ____.",
+  symptom:
+    "My main symptom is ____. It started ____. The severity is __/10. I also have / do not have chest pain, breathing difficulty, bleeding, confusion, or fainting. I am taking ____. I have allergies to ____.",
+  medication:
+    "I have a question about this medicine: ____. I want to know about ____. I am currently taking ____. I have allergies to ____.",
+  clinician:
+    "I would like a clinician to review my case. My concern is ____. It started ____. My symptoms are ____. The severity is ____. I am taking ____. My reason for review is ____.",
+};
+
+function GuidancePanel({
+  onPickTemplate,
+}: {
+  onPickTemplate: (template: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const pick = (key: keyof typeof TEMPLATES) => {
+    onPickTemplate(TEMPLATES[key]);
+    setOpen(false);
+  };
+
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between rounded-2xl border border-medical-blue/20 bg-medical-blue-soft/60 px-4 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-medical-blue-soft"
+        aria-expanded={open}
+      >
+        <span className="flex items-center gap-2">
+          <HelpCircle className="h-4 w-4 text-medical-blue" />
+          What should I include?
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 text-muted-foreground transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {open && (
+        <div className="mt-2 rounded-2xl border border-medical-blue/20 bg-card p-4 text-sm shadow-sm">
+          <p className="text-muted-foreground">
+            To help ClareCare understand your situation better, please include:
+          </p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-foreground/90">
+            <li>Your main symptom or question</li>
+            <li>When it started</li>
+            <li>How serious it is: mild, moderate, severe, or 1–10</li>
+            <li>
+              Any red flag symptoms such as chest pain, difficulty breathing,
+              severe bleeding, confusion, fainting, or severe allergic reaction
+            </li>
+            <li>Any medication you are taking or allergies you have</li>
+            <li>
+              Whether you want general advice, pharmacist review, or clinician
+              review
+            </li>
+          </ol>
+          <p className="mt-3 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-800">
+            If this is an emergency, call 999 or seek emergency care
+            immediately.
+          </p>
+
+          <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Quick start templates
+          </p>
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <QuickButton onClick={() => pick("general")}>
+              General health question
+            </QuickButton>
+            <QuickButton onClick={() => pick("symptom")}>
+              Symptom check
+            </QuickButton>
+            <QuickButton onClick={() => pick("medication")}>
+              Medication question
+            </QuickButton>
+            <QuickButton onClick={() => pick("clinician")}>
+              Request clinician review
+            </QuickButton>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuickButton({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-xl border border-medical-green/30 bg-medical-green-soft px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-medical-green/20"
+    >
+      {children}
+    </button>
+  );
+}
+
 
 function MessageRow({
   message,
