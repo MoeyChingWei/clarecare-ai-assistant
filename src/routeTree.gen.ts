@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DoctorLoginRouteImport } from './routes/doctor-login'
 import { Route as ClinicianRouteImport } from './routes/clinician'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const DoctorLoginRoute = DoctorLoginRouteImport.update({
+  id: '/doctor-login',
+  path: '/doctor-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClinicianRoute = ClinicianRouteImport.update({
   id: '/clinician',
   path: '/clinician',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/chat': typeof ChatRoute
   '/clinician': typeof ClinicianRoute
+  '/doctor-login': typeof DoctorLoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/chat': typeof ChatRoute
   '/clinician': typeof ClinicianRoute
+  '/doctor-login': typeof DoctorLoginRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/chat': typeof ChatRoute
   '/clinician': typeof ClinicianRoute
+  '/doctor-login': typeof DoctorLoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/chat' | '/clinician'
+  fullPaths: '/' | '/admin' | '/chat' | '/clinician' | '/doctor-login'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/chat' | '/clinician'
-  id: '__root__' | '/' | '/admin' | '/chat' | '/clinician'
+  to: '/' | '/admin' | '/chat' | '/clinician' | '/doctor-login'
+  id: '__root__' | '/' | '/admin' | '/chat' | '/clinician' | '/doctor-login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,10 +76,18 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   ChatRoute: typeof ChatRoute
   ClinicianRoute: typeof ClinicianRoute
+  DoctorLoginRoute: typeof DoctorLoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/doctor-login': {
+      id: '/doctor-login'
+      path: '/doctor-login'
+      fullPath: '/doctor-login'
+      preLoaderRoute: typeof DoctorLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clinician': {
       id: '/clinician'
       path: '/clinician'
@@ -107,7 +124,18 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   ChatRoute: ChatRoute,
   ClinicianRoute: ClinicianRoute,
+  DoctorLoginRoute: DoctorLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
