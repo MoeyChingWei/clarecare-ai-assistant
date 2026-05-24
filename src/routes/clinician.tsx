@@ -158,7 +158,7 @@ function ClinicianDashboard() {
       <AppHeader />
 
       <main className="mx-auto max-w-6xl px-4 py-6">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-display text-3xl font-semibold tracking-tight">
               Clinician dashboard
@@ -168,10 +168,26 @@ function ClinicianDashboard() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <Stat label="High" value={counts.high} tone="high" />
-            <Stat label="Medium" value={counts.medium} tone="medium" />
-            <Stat label="Low" value={counts.low} tone="low" />
+          <div className="flex flex-col items-end gap-2">
+            {doctor && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-medium text-foreground">
+                  Dr. {doctor.full_name}
+                </span>
+                <button
+                  onClick={signOut}
+                  className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <LogOut className="h-3 w-3" />
+                  Sign Out
+                </button>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <Stat label="High" value={counts.high} tone="high" />
+              <Stat label="Medium" value={counts.medium} tone="medium" />
+              <Stat label="Low" value={counts.low} tone="low" />
+            </div>
           </div>
         </div>
 
