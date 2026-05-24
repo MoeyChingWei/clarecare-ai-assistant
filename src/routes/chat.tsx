@@ -218,11 +218,7 @@ function PatientChat() {
           className="flex-1 min-h-0 space-y-4 overflow-y-auto rounded-2xl border border-border/70 bg-card p-3 shadow-sm md:p-4"
         >
           {messages.map((m) => (
-            <MessageRow
-              key={m.id}
-              message={m}
-              onRequestReview={() => handleReviewRequest(m.id)}
-            />
+            <MessageRow key={m.id} message={m} />
           ))}
           {pending && (
             <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
