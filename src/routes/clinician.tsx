@@ -309,6 +309,33 @@ function CaseCard({
         )}
       </div>
 
+      <div className="mt-3">
+        {c.routed_to ? (
+          <RoutedBadge routing={c.routed_to} />
+        ) : (
+          <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/40 p-3 sm:flex-row sm:items-center">
+            <label className="text-xs font-medium text-muted-foreground">
+              Route to:
+            </label>
+            <select
+              value={routing}
+              onChange={(e) => setRouting(e.target.value as Routing)}
+              className="flex-1 rounded-lg border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-medical-blue/40"
+            >
+              <option value="clinician">🩺 Clinician</option>
+              <option value="pharmacist">💊 Pharmacist</option>
+            </select>
+            <button
+              onClick={() => onConfirmRouting(c.id, routing)}
+              className="rounded-lg bg-medical-blue px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              Confirm Routing
+            </button>
+          </div>
+        )}
+      </div>
+
+
       {c.status === "open" ? (
         <button
           onClick={() => onResolve(c.id)}
