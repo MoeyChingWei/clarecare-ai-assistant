@@ -115,12 +115,12 @@ function InfoCard({
   body: string;
 }) {
   return (
-    <article className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
-      <div className="text-2xl">{emoji}</div>
-      <h2 className="mt-3 font-display text-lg font-semibold tracking-tight">
+    <article className="rounded-xl border border-border/70 bg-card p-3 shadow-sm transition-shadow hover:shadow-md sm:rounded-2xl sm:p-5">
+      <div className="text-xl sm:text-2xl">{emoji}</div>
+      <h2 className="mt-1 font-display text-sm font-semibold tracking-tight sm:mt-3 sm:text-lg">
         {title}
       </h2>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:mt-2 sm:text-sm">
         {body}
       </p>
     </article>
