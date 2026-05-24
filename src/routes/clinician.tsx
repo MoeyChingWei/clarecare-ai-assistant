@@ -12,7 +12,7 @@ import {
 import { AppHeader } from "@/components/AppHeader";
 import { LiveChatPanel } from "@/components/LiveChatPanel";
 import { supabase } from "@/integrations/supabase/client";
-import { DOCTOR_SESSION_KEY } from "./doctor-login";
+import { loadSession, clearSession } from "@/lib/session";
 
 export const Route = createFileRoute("/clinician")({
   head: () => ({
@@ -69,19 +69,38 @@ function ClinicianDashboard() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const raw = localStorage.getItem(DOCTOR_SESSION_KEY);
-    if (!raw) {
-      navigate({ to: "/doctor-login" });
+    const session = loadSession();
+    if (!session) {
+      navigate({ to: "/login", search: { reason: "auth" } });
       return;
     }
-    try {
-      const parsed = JSON.parse(raw) as DoctorSession;
-      if (!parsed?.id || !parsed?.full_name) throw new Error("invalid");
-      setDoctor(parsed);
-    } catch {
-      localStorage.removeItem(DOCTOR_SESSION_KEY);
-      navigate({ to: "/doctor-login" });
+    if (!["doctor", "admin", "superadmin"].includes(session.role)) {
+      navigate({ to: "/login", search: { reason: "auth" } });
+      return;
     }
+    // Resolve doctor_accounts row by username so assignments + online flag
+    // continue to key off doctor_accounts.id.
+    void supabase
+      .from("doctor_accounts")
+      .select("id, username, full_name")
+      .eq("username", session.username)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setDoctor({
+            id: data.id,
+            username: data.username,
+            full_name: data.full_name,
+          });
+        } else {
+          // Admin/superadmin without a doctor profile — show empty state.
+          setDoctor({
+            id: "",
+            username: session.username,
+            full_name: session.fullName,
+          });
+        }
+      });
   }, [navigate]);
 
   // Mark online while session active; offline on unmount
