@@ -81,6 +81,13 @@ const INPUT_PLACEHOLDER: Record<Lang, string> = {
 };
 
 const STORAGE_KEY = "clarecare_patient";
+const ASSIGNMENT_KEY = "clarecare_assignment";
+
+type Assignment = {
+  assignmentId: string;
+  doctorId: string;
+  doctorName: string;
+};
 
 function makeId() {
   return Math.random().toString(36).slice(2, 10);
@@ -93,6 +100,19 @@ function loadPatient(): PatientInfo | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PatientInfo;
     if (parsed?.name && parsed?.phone) return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function loadAssignment(): Assignment | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(ASSIGNMENT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Assignment;
+    if (parsed?.assignmentId && parsed?.doctorName) return parsed;
     return null;
   } catch {
     return null;
