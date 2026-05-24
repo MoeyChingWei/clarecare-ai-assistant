@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          actor_role: string | null
+          actor_user_id: string | null
+          created_at: string
+          details: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_role?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_role?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+        }
+        Relationships: []
+      }
       doctor_accounts: {
         Row: {
           active_patients: number
@@ -92,6 +125,42 @@ export type Database = {
           },
         ]
       }
+      email_logs: {
+        Row: {
+          created_at: string
+          email_type: string
+          error_message: string | null
+          id: string
+          recipient_email: string
+          related_feedback_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          email_type: string
+          error_message?: string | null
+          id?: string
+          recipient_email: string
+          related_feedback_id?: string | null
+          sent_at?: string | null
+          status: string
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          recipient_email?: string
+          related_feedback_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       escalated_cases: {
         Row: {
           case_summary: string
@@ -134,6 +203,86 @@ export type Database = {
           status?: string
           symptoms?: string[]
           urgency?: string
+        }
+        Relationships: []
+      }
+      feedback_admin_notes: {
+        Row: {
+          admin_user_id: string | null
+          created_at: string
+          feedback_id: string
+          id: string
+          note: string
+        }
+        Insert: {
+          admin_user_id?: string | null
+          created_at?: string
+          feedback_id: string
+          id?: string
+          note: string
+        }
+        Update: {
+          admin_user_id?: string | null
+          created_at?: string
+          feedback_id?: string
+          id?: string
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_admin_notes_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_notifications: {
+        Row: {
+          created_at: string
+          feedback_type: string
+          id: string
+          message: string
+          priority: string
+          related_case_id: string | null
+          status: string
+          submitted_by_email: string | null
+          submitted_by_name: string | null
+          submitted_by_role: string | null
+          submitted_by_user_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_type: string
+          id?: string
+          message: string
+          priority?: string
+          related_case_id?: string | null
+          status?: string
+          submitted_by_email?: string | null
+          submitted_by_name?: string | null
+          submitted_by_role?: string | null
+          submitted_by_user_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          message?: string
+          priority?: string
+          related_case_id?: string | null
+          status?: string
+          submitted_by_email?: string | null
+          submitted_by_name?: string | null
+          submitted_by_role?: string | null
+          submitted_by_user_id?: string | null
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -259,6 +408,48 @@ export type Database = {
           last_result?: string | null
           last_run_at?: string | null
           patient_query?: string
+        }
+        Relationships: []
+      }
+      user_accounts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          full_name: string
+          id: string
+          last_login_at: string | null
+          password_hash: string
+          role: string
+          status: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          full_name: string
+          id?: string
+          last_login_at?: string | null
+          password_hash: string
+          role: string
+          status?: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          last_login_at?: string | null
+          password_hash?: string
+          role?: string
+          status?: string
+          updated_at?: string
+          username?: string
         }
         Relationships: []
       }
